@@ -1,0 +1,20 @@
+left directory (sol elden alýnan görüntülerin bulunduðu klasör):
+act : 100 x 3 imge var
+bag : 100 x 3 imge var
+ice : 100 x 3 imge var
+norm : 100 x 3 imge var
+
+right directory (sað elden alýnan görüntülerin bulunduðu klasör):
+norm : 100 x 3 imge var
+
+timelapse_left directory (zaman aþamalý olarak deneklerden çekilmiþ sol el datalarýnýn bulunduðu klasör):
+norm : 25 x 3 imge var.
+
+Klasörlarin içindeki imgelerin adlandýrmasý da þu þekilde yapýlmýþtýr : 
+
+pA_B_C_D.bmp 
+
+A: Verinin alýndýðý kiþinin kaç numaralý kiþi olduðu bilgisi
+B: Verinin bulunduðu klasörün ismi (ancak 'left', 'right', 'timelapse_left' ten herhangi biri olabilir.)
+C: Verinin hangi koþul altýnda çekildiði bilgisi (ancak 'act', 'bag', 'ice' veya 'norm' dan herhangi biri olabilir.)
+D: Verinin Y koþulu altýnda çekilmiþ 3 el imgesi kullanýlacaktýr. Z indeksi kaç numaralý resim olduðu bilgisini verir.
