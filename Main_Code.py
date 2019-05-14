@@ -3,16 +3,16 @@ import imutils
 import cv2
 
 
-def get_accumEdged(image):
+def get_accumEdged(image, blur_value = 3, min_val_canny = 150, max_val_canny = 200):
     accumEdged = np.zeros(image.shape[:2], dtype="uint8")
 
     # loop over the blue, green, and red channels, respectively
     for chan in cv2.split(image):
-        chan = cv2.medianBlur(chan, 3)
-        edged = cv2.Canny(chan, 150, 200)
+        chan = cv2.medianBlur(chan, blur_value)
+        edged = cv2.Canny(chan, min_val_canny, max_val_canny)
         accumEdged = cv2.bitwise_or(accumEdged, edged)
             
-    cv2.imshow("Edge Map", accumEdged)
+    cv2.imshow(image_name + "accumEdged", accumEdged)
     
     while True:    
         key = cv2.waitKey(1)
@@ -21,8 +21,6 @@ def get_accumEdged(image):
             break
         
     return accumEdged
-
-
 
 
 def find_contour_needed(accumEdged):
@@ -146,9 +144,12 @@ def find_definite_indexes(indexes):
 
 
 def find_middle_point(image_name, definite_index, accumEdged):
+    point = [0, 0]
     if(len(definite_index) > 0):
         point = [(accumEdged.shape[0]-10), int(sum(definite_index)/len(definite_index))]
         
+        
+        #points_value.count(255)
         print(image_name + " === " 
               + str(len(definite_index)) + "   ---  (done) ")
     
@@ -156,7 +157,7 @@ def find_middle_point(image_name, definite_index, accumEdged):
         orig = image.copy()
         cv2.circle(orig, (point[1], point[0]), 5, (0, 255, 0), -1)
         
-        cv2.imshow("Middle point", orig)
+        cv2.imshow(image_name + "Middle point", orig)
     
         while True:    
             key = cv2.waitKey(1)
@@ -170,7 +171,7 @@ def find_middle_point(image_name, definite_index, accumEdged):
         for i in range(0, len(definite_index)):
             cv2.circle(orig, (definite_index[i], (accumEdged.shape[0]-10)), 5, (0, 255, 0), -1)
     
-        cv2.imshow("points", orig)
+        cv2.imshow(image_name + "points", orig)
         
         while True:    
             key = cv2.waitKey(1)
@@ -179,7 +180,8 @@ def find_middle_point(image_name, definite_index, accumEdged):
                 break
     
     else:
-        print(image_name + " ===  " + str(len(definite_index)))
+        print(image_name + " === " 
+              + str(len(definite_index)) + "   ---  (Not done) ")
     
     return point
 
@@ -200,7 +202,7 @@ def middle_point_from_image(image_name, accumEdged):
 
 ############## Main Code ############
 
-total_samples = 5
+total_samples = 6
 
 folder_path = "./HandVeinDatabase/left - 1200/act - 300/"
 
@@ -210,10 +212,13 @@ for i in range(1, int(total_samples/2)+1):
         # load the image, clone it, and setup the mouse callback function
         image_name = "p" + str(i) + "_left_act_" + str(j) + ".bmp"
         image = cv2.imread(folder_path + image_name)
-        accumEdged = get_accumEdged(image)
+        blur_value = 3
+        min_val_canny = 100
+        max_val_canny = 200
+        accumEdged = get_accumEdged(image, 3, 150, 200)
         cnts_nedded = find_contour_needed(accumEdged)
         middle_point = middle_point_from_image(image_name, accumEdged)
         
-      
+
 
 
