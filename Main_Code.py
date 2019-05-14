@@ -23,6 +23,8 @@ def get_accumEdged(image, blur_value = 3, min_val_canny = 150, max_val_canny = 2
     return accumEdged
 
 
+
+
 def find_contour_needed(accumEdged):
     
     contour_image = accumEdged
@@ -44,10 +46,11 @@ def find_contour_needed(accumEdged):
 
 
 
-def get_point_value(accumEdged):
+def get_point_value(accumEdged, height = 10):
     points_value = []
     for x in range(0, accumEdged.shape[1]):
-        points_value.append(accumEdged[(accumEdged.shape[0]-10), x])   
+        points_value.append(accumEdged[(accumEdged.shape[0]-height), x])   
+    
     
     indexes = [i for i, x in enumerate(points_value) if x == 255]
     
@@ -137,16 +140,20 @@ def find_definite_indexes(indexes):
                 end = 0
                 end_bool = False
                 start_bool = False
+            
+            #else:
+                #print("just middle - " + str(indexes[arg_index]))
+            
 
     return definite_index
 
 
 
 
-def find_middle_point(image_name, definite_index, accumEdged):
+def find_middle_point(image_name, definite_index, accumEdged, height = 10):
     point = [0, 0]
     if(len(definite_index) > 0):
-        point = [(accumEdged.shape[0]-10), int(sum(definite_index)/len(definite_index))]
+        point = [(accumEdged.shape[0]-height), int(sum(definite_index)/len(definite_index))]
         
         
         #points_value.count(255)
@@ -187,13 +194,13 @@ def find_middle_point(image_name, definite_index, accumEdged):
 
 
 
-def middle_point_from_image(image_name, accumEdged):
+def middle_point_from_image(image_name, accumEdged, height):
 
-    indexes = get_point_value(accumEdged)
+    indexes = get_point_value(accumEdged, height)
     
     definite_index = find_definite_indexes(indexes)
     
-    middle_pont = find_middle_point(image_name, definite_index, accumEdged)
+    middle_pont = find_middle_point(image_name, definite_index, accumEdged, height)
 
     return middle_pont
 
@@ -215,10 +222,8 @@ for i in range(1, int(total_samples/2)+1):
         blur_value = 3
         min_val_canny = 100
         max_val_canny = 200
+        height = 10
         accumEdged = get_accumEdged(image, 3, 150, 200)
         cnts_nedded = find_contour_needed(accumEdged)
-        middle_point = middle_point_from_image(image_name, accumEdged)
+        middle_point = middle_point_from_image(image_name, accumEdged, height)
         
-
-
-
