@@ -1,56 +1,3 @@
-############################# Libraries ##########################
-#############################################################
-#############################################################
-
-import numpy as np
-import imutils
-import cv2
-
-
-
-def get_accumEdged(image):
-    accumEdged = np.zeros(image.shape[:2], dtype="uint8")
-
-    # loop over the blue, green, and red channels, respectively
-    for chan in cv2.split(image):
-        chan = cv2.medianBlur(chan, 3)
-        edged = cv2.Canny(chan, 150, 200)
-        accumEdged = cv2.bitwise_or(accumEdged, edged)
-            
-    cv2.imshow("Edge Map", accumEdged)
-    
-    while True:    
-        key = cv2.waitKey(1)
-        if key == 27:
-            cv2.destroyAllWindows()
-            break
-        
-    return accumEdged
-
-
-
-
-def find_contour_needed(accumEdged):
-    
-    contour_image = accumEdged
-    
-    cnts = cv2.findContours(contour_image, cv2.RETR_EXTERNAL,
-    	cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
-
-    cnts_nedded = []
-    area = []
-    for c in cnts:
-        if(cv2.contourArea(c) > 100):
-            area.append(cv2.contourArea(c))
-            cnts_nedded.append(c)
-
-    return cnts_nedded
-
-
-
-
 def get_point_value(accumEdged):
     points_value = []
     for x in range(0, accumEdged.shape[1]):
@@ -145,9 +92,7 @@ def find_definite_indexes(indexes):
                 end = 0
                 end_bool = False
                 start_bool = False
-            
-            #else:
-                #print("just middle - " + str(indexes[arg_index]))
+
             
 
     return definite_index
@@ -158,9 +103,7 @@ def find_definite_indexes(indexes):
 def find_middle_point(image_name, definite_index, accumEdged):
     if(len(definite_index) > 0):
         point = [(accumEdged.shape[0]-10), int(sum(definite_index)/len(definite_index))]
-        
-        
-        #points_value.count(255)
+
         print(image_name + " === " 
               + str(len(definite_index)) + "   ---  (done) ")
     
@@ -206,27 +149,3 @@ def middle_point_from_image(image_name, accumEdged):
     middle_pont = find_middle_point(image_name, definite_index, accumEdged)
 
     return middle_pont
-
-
-
-
-############## Example ############
-
-
-
-image_name = "p2_left_act_2.bmp"
-image = cv2.imread(image_name)
-
-accumEdged = get_accumEdged(image)
-cnts_nedded = find_contour_needed(accumEdged)
-middle_point = middle_point_from_image(image_name, accumEdged)
-
-
-
-
-
-
-
-
-
-
