@@ -1,14 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed May 22 08:27:14 2019
-
-@author: User
-"""
-
-############################# Libraries ##########################
-#############################################################
-#############################################################
-
 import numpy as np
 import imutils
 import cv2
@@ -74,24 +63,8 @@ def get_trough_points(image, all_cnts):
     cnt_x = all_cnts[:, 0]
     cnt_y = all_cnts[:, 1]
 
-#    plt.figure(1, figsize=(12, 6))
-#    plt.subplot(311)
-#    plt.plot(cnt_x)
-#    plt.ylabel('Controur_points')
-#    
-#    plt.figure(1, figsize=(12, 6))
-#    plt.subplot(312)
-#    plt.plot(cnt_y)
-#    plt.ylabel('Controur_points')
-#    
     grad = np.gradient(cnt_y)
-#    
-#    plt.figure(1, figsize=(12, 6))
-#    plt.subplot(313)
-#    plt.plot(grad)
-#    plt.ylabel('Gradients')
-#    plt.show()
-#    
+
     troughs = []   
     for i in range(2, len(grad)-3):
         if((grad[i] < 0)  &  (grad[i-1] > 0) & (i>0)):
