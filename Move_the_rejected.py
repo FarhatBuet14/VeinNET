@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May 21 17:22:44 2019
+
+@author: User
+"""
+
 import numpy as np
 import cv2
 import os
@@ -7,7 +14,7 @@ import shutil
 
 folder_path = "./HandVeinDatabase/right - 300/norm - 300/"
        
-deleted_folder = "./Deleted/"
+rejected_folder = "./Rejected/"
 csv_file_name = "Vein_Image/Extarcted.csv"
 
 def delete_the_rejected_images(csv_file_name, deleted_folder):
@@ -24,14 +31,19 @@ def delete_the_rejected_images(csv_file_name, deleted_folder):
 
     return image_count
 
-image_count = delete_the_rejected_images(csv_file_name, deleted_folder)
+image_count = delete_the_rejected_images(csv_file_name, rejected_folder)
 
 ########################### Rename Filenames ##########################
 
-filenames = os.listdir(deleted_folder)
+#filenames = os.listdir(rejected_folder)
+#
+#for image_filename in filenames:
+#    img_file = cv2.imread(rejected_folder + '/' + image_filename)
+#    image_name = image_filename.replace('deleted_', '')
+#    cv2.imwrite('./bla/' + image_name, img_file)
 
-for image_filename in filenames:
-    img_file = cv2.imread(deleted_folder + '/' + image_filename)
-    image_name = image_filename.replace('deleted_', '')
-    cv2.imwrite('./bla/' + image_name, img_file)
+
+
+
+
 

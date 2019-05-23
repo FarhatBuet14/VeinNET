@@ -6,9 +6,9 @@ Created on Wed May 22 09:17:26 2019
 """
 
 import numpy as np
-import cv2
-import os
-
+#import cv2
+#import os
+#
 #def get_accumEdged(image):
 #    accumEdged = np.zeros(image.shape[:2], dtype="uint8")
 #
@@ -22,8 +22,8 @@ import os
 #
 #
 #
-#rejected_folder = "./Rejected/left_norm_300/"
-#datafile = "./Troughs_Model/test_data/left_norm.npz"
+#rejected_folder = "./Rejected/right_norm_300/"
+#datafile = "./Troughs_Model/test_data/right_norm.npz"
 #
 #
 #filenames = os.listdir(rejected_folder)
@@ -35,20 +35,24 @@ import os
 #image_paths = []
 #
 #for image_filename in filenames:
-#    image = cv2.imread(rejected_folder + image_filename)
+#    
+#    image = cv2.imread(rejected_folder + filenames[0])
 #    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 #    
 #    accumEdged = get_accumEdged(gray)
 #    
 #    
-#    accumEdged = accumEdged.reshape((1, (240*300)))
+#    accumEdged = gray.reshape((1, (240*300)))
 #    accumEdged_images.append(accumEdged)
-#    image_names.append(image_filename)
-#    image_paths.append(rejected_folder + image_filename)
-#        
+#    image_names.append(filenames[0])
+#    image_paths.append(rejected_folder + filenames[0])
 #
-#test_data = np.zeros((len(image_names), (72000))).astype(float)
-#test_info = np.zeros((len(image_names), 2)).astype(str)
+#
+#test_data = np.zeros((len(image_names), (72000)))
+#
+#test_info = np.empty((len(image_names), 2)).astype(
+#        np.dtype("a52"))
+#
 #
 #for index in range(0, len(image_names)):
 #    test_info[index, 0] = image_names[index]
@@ -61,8 +65,8 @@ import os
 #         test_data = test_data,
 #         test_info = test_info)
 #
-#
-#
+
+
 
 #####################  Read datasets and merge  ###################
 
@@ -128,7 +132,7 @@ data[(len(data_1)+len(data_2)+len(data_3)+len(data_4)) : length] = data_5
 
 length = len(info_1) + len(info_2) + len(info_3) + len(info_4) + len(info_5)
 
-info = np.zeros((length, info_1.shape[1])).astype(str)
+info = np.zeros((length, info_1.shape[1])).astype(np.dtype("a52"))
 
 info[0 : len(info_1)] = info_1
 

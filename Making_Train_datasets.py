@@ -174,12 +174,12 @@ import shutil
 #
 #
 #
-#folder_path = "./HandVeinDatabase/right - 300/norm - 300/"
-#datafile = "./Troughs_Model/train_data/right_norm.npz"
+#folder_path = "./HandVeinDatabase/left - 1200/act - 300/"
+#datafile = "./Troughs_Model/train_data/left_act.npz"
 #
 #
 #filenames = os.listdir(folder_path)
-##filenames = filenames[:-1]
+#filenames = filenames[:-1]
 #
 #
 #accumEdged_images = []
@@ -204,7 +204,7 @@ import shutil
 #    trough_image , bef_image, troughs = np.array(get_trough_points(gray.copy(), all_cnts))
 #
 #    if(len(troughs) == 3):
-#        accumEdged = accumEdged.reshape((1, (240*300)))
+#        accumEdged = gray.reshape((1, (240*300)))
 #        troughs = troughs.reshape((1, 6))
 #        accumEdged_images.append(accumEdged)
 #        trough_points.append(troughs)
@@ -216,7 +216,7 @@ import shutil
 #        
 #
 #train_data = np.zeros((len(image_names), (6 + 72000))).astype(float)
-#train_info = np.zeros((len(image_names), 2)).astype(str)
+#train_info = np.zeros((len(image_names), 2)).astype(np.dtype("a52"))
 #
 #for index in range(0, len(image_names)):
 #    train_info[index, 0] = image_names[index]
@@ -295,7 +295,7 @@ data[(len(data_1)+len(data_2)+len(data_3)+len(data_4)) : length] = data_5
 
 length = len(info_1) + len(info_2) + len(info_3) + len(info_4) + len(info_5)
 
-info = np.zeros((length, info_1.shape[1])).astype(str)
+info = np.zeros((length, info_1.shape[1])).astype(np.dtype("a52"))
 
 info[0 : len(info_1)] = info_1
 

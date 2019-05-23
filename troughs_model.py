@@ -21,7 +21,7 @@ K.set_image_data_format('channels_last')
 
 datafile = "./Troughs_Model/data.npz"
 
-weightFile = './WeightFile_best.hdf5'
+weightFile = './Troughs_Model/WeightFile_best.hdf5'
 
 
 ####################### Loading the Data ################################
