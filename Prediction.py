@@ -7,6 +7,9 @@ Created on Wed May 22 23:21:51 2019
 
 import numpy as np
 import cv2
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
 from keras.models import Model
 from keras.layers import Input
 from keras.layers import Dense, Dropout
@@ -30,19 +33,35 @@ np.random.seed(seed)
 
 
 
-datafile = "./Troughs_Model/Data_for_AccuEdges/data.npz"
-weightFile = './Troughs_Model/1/WeightFile_best.hdf5'
-prediction_fldr = './Troughs_Model/1/prediction/'
+datafile = "./Troughs_Model/model_AccuEdges/5/data.npz"
+#gray_datafile = "./Troughs_Model/model_AccuEdges/2/test_data/test_gray.npz"
+weightFile = './Troughs_Model/model_AccuEdges/5/WeightFile_best.hdf5'
+prediction_fldr = './Troughs_Model/model_AccuEdges/5/prediction/'
 
 
 ####################### Loading the Data ################################
 
 dataset = np.load(datafile)
+#gray_dataset = np.load(gray_datafile)
+
+#X_test = test_dataset['X']
+#X_test = X_test.reshape((X_test.shape[0], 240, 300, 1))
+#test_names = test_dataset['test_names'].astype(str)
+#test_paths = test_dataset['test_paths'].astype(str)
+#
+#X_test_gray = gray_dataset['X']
+#X_test_gray = X_test_gray.reshape((X_test_gray.shape[0], 240, 300, 1))
+
 
 X_test = dataset['X_test']
-X_test = X_test.reshape((X_test.shape[0], 300, 240, 1))
+X_test_gray = dataset['X_test_gray']
+y_test = dataset['y_test']
+test_names = dataset['test_names']
 
-X_test_info = dataset['X_test_info']
+X_test = X_test.reshape((X_test.shape[0], 240, 300, 1))
+X_test_gray = X_test_gray.reshape((X_test.shape[0], 240, 300, 1))
+
+X_test = X_test / 255
 
 num_pred_value = 6
 
@@ -50,7 +69,7 @@ num_pred_value = 6
 ################## Defining & Loading Model #############################
 
 #(batch, rows, cols, channels)
-input_layer = Input(shape=(300,240,1), name='Input_Layer')
+input_layer = Input(shape=(240,300,1), name='Input_Layer')
 
 #------------------------  Left Conv Layers  -----------------------------
 
@@ -96,69 +115,59 @@ model.load_weights(weightFile)
 
 y_pred = model.predict(X_test)
 
+
 y_pred = y_pred.reshape((y_pred.shape[0], 3, 2))
 
+#X_test_gray = X_test_gray * 255
 
+
+count = 0
 for sample in range(0, len(y_pred)):
     
-    image_name = str(X_test_info[sample, 0])
-    image_name = image_name.replace("b'", '')
-    image_name = image_name.replace("'", '')
+    image = X_test_gray[sample, :, :, 0].reshape(
+            (X_test_gray.shape[1], X_test_gray.shape[2])).astype(np.uint8)
     
-    image_folder_path = str(X_test_info[sample, 1])
-    image_folder_path = image_folder_path.replace("b'", '')
-    image_folder_path = image_folder_path.replace("'", '')
-    
-    image = cv2.imread(image_folder_path)
     
     if image is not None:
-        print(str(sample) + " - " + prediction_fldr + image_name)
-    
-    for point in y_pred[sample, :, :]:   
-        point = point.astype(int)
-        cv2.circle(image, (point[0], 
-                   point[1]), 
-                   5, (0, 255, 0), -1)
-    
-    cv2.imwrite(prediction_fldr + image_name, image)
+        for point in y_pred[sample, :, :]:   
+            point = point.astype(int)
+            cv2.circle(image, (point[0], 
+                       point[1]), 
+                       5, (0, 255, 0), -1)
+        filenames = os.listdir(prediction_fldr)
+        
+        if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
+        
+        cv2.imwrite(prediction_fldr + test_names[sample], image)
+        count += 1
+    else:
+        print(test_names[sample] + " is found None")
 
 
 
 
 
+y_pred = y_pred.reshape((y_pred.shape[0], 6))
+
+err = abs(y_test - y_pred)
+
+err = np.sum(err, axis = 1)/6
+
+err_avg = sum(err)/len(err)
+
+
+plt.figure(figsize = (20, 10))
+plt.plot(err)
+plt.show()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+pred_datafile = "./Troughs_Model/model_AccuEdges/5/pred_data_4.npz"
+np.savez(pred_datafile,
+         y_pred = y_pred,
+         err = err,
+         err_avg = err_avg,
+         test_names = test_names)
 
 
 
