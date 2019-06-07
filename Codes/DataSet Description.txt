@@ -1,0 +1,14 @@
+Datset Link: http://bosphorus.ee.boun.edu.tr/hand/Home.aspx
+
+left directory:
+act : 100 x 3 imge var
+bag : 100 x 3 imge var
+ice : 100 x 3 imge var
+norm : 100 x 3 imge var
+
+right directory:
+norm : 100 x 3 imge var
+
+timelapse_left directory:
+norm : 25 x 3 imge var.
+

@@ -1,0 +1,339 @@
+epochs = 100
+batch_size = 8
+verbose = 1
+
+#(batch, rows, cols, channels)
+input_layer = Input(shape=(240,300, 1), name='Input_Layer')
+
+#------------------------  Left Conv Layers  -----------------------------
+
+conv_11 = Conv2D(32, kernel_size = (3, 3), strides = 1, 
+               activation = 'relu', padding = 'same')(input_layer)
+conv_12 = Conv2D(32, kernel_size = (3, 3), strides = 1, 
+               activation = 'relu', padding = 'same')(conv_11)
+pool_11 = MaxPooling2D(pool_size=(2, 2))(conv_12)
+
+
+
+conv_13 = Conv2D(64, kernel_size = (3, 3), strides = 1, 
+               activation = 'relu', padding = 'same')(pool_11)
+conv_14 = Conv2D(64, kernel_size = (3, 3), strides = 1, 
+               activation = 'relu', padding = 'same')(conv_13)
+pool_12 = MaxPooling2D(pool_size=(2, 2))(conv_14)
+
+
+
+conv_15 = Conv2D(128, kernel_size = (2, 2), strides = 1, 
+               activation = 'relu', padding = 'same')(pool_12)
+conv_16 = Conv2D(128, kernel_size = (2, 2), strides = 1, 
+               activation = 'relu', padding = 'same')(conv_15)
+pool_13 = MaxPooling2D(pool_size=(2, 2))(conv_16)
+flat_1 = Flatten()(pool_13)
+
+
+#------------------------  Densed Layer  --------------------
+
+
+dense_1 = Dense(128, activation='relu')(flat_1)
+output_layer = Dense(num_pred_value,
+                     name='Output_Layer')(dense_1)
+
+
+#------------------------  Model Brief  -----------------------------
+
+model = Model(inputs = input_layer, outputs = output_layer)
+print(model.summary())
+plot_model(model, to_file='shared_input_layer.png')
+
+
+#################### Compiling the Model ################################
+optimizer = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.0)
+model.compile(loss='mae', optimizer=optimizer, 
+              metrics=['mse'])
+
+#################### Defining the Checkpoints ###########################
+
+learning_rate_reduction = ReduceLROnPlateau(monitor='val_loss', 
+                                            patience=3, 
+                                            verbose=1, 
+                                            factor=0.25, 
+                                            min_lr=0.00001)
+
+wigth  = ModelCheckpoint(weightFile, monitor = 'val_loss' )
+callbacks = [wigth, learning_rate_reduction]
+
+
+############################ Data Augmentation ############################
+
+training_samples = X_train.shape[0]
+validation_samples = X_val.shape[0]
+
+
+history = model.fit(X_train, y_train,
+                    validation_data = [X_val , y_val],
+                    epochs = epochs, verbose = verbose,
+                    callbacks= callbacks)
+
+
+
+
+
+
+
+
+
+
+
+
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+Input_Layer (InputLayer)     (None, 240, 300, 1)       0         
+_________________________________________________________________
+conv2d_8 (Conv2D)            (None, 240, 300, 32)      320       
+_________________________________________________________________
+conv2d_9 (Conv2D)            (None, 240, 300, 32)      9248      
+_________________________________________________________________
+max_pooling2d_4 (MaxPooling2 (None, 120, 150, 32)      0         
+_________________________________________________________________
+conv2d_10 (Conv2D)           (None, 120, 150, 64)      18496     
+_________________________________________________________________
+conv2d_11 (Conv2D)           (None, 120, 150, 64)      36928     
+_________________________________________________________________
+max_pooling2d_5 (MaxPooling2 (None, 60, 75, 64)        0         
+_________________________________________________________________
+conv2d_12 (Conv2D)           (None, 60, 75, 128)       32896     
+_________________________________________________________________
+conv2d_13 (Conv2D)           (None, 60, 75, 128)       65664     
+_________________________________________________________________
+max_pooling2d_6 (MaxPooling2 (None, 30, 37, 128)       0         
+_________________________________________________________________
+flatten_2 (Flatten)          (None, 142080)            0         
+_________________________________________________________________
+dense_2 (Dense)              (None, 128)               18186368  
+_________________________________________________________________
+Output_Layer (Dense)         (None, 6)                 774       
+=================================================================
+Total params: 18,350,694
+Trainable params: 18,350,694
+Non-trainable params: 0
+_________________________________________________________________
+None
+Train on 475 samples, validate on 318 samples
+Epoch 1/100
+475/475 [==============================] - 10s 21ms/step - loss: 102.6944 - mean_squared_error: 11798.1834 - val_loss: 38.4665 - val_mean_squared_error: 2193.5400
+Epoch 2/100
+475/475 [==============================] - 4s 8ms/step - loss: 18.2667 - mean_squared_error: 570.1813 - val_loss: 14.3333 - val_mean_squared_error: 306.2536
+Epoch 3/100
+475/475 [==============================] - 4s 8ms/step - loss: 13.2290 - mean_squared_error: 281.7562 - val_loss: 11.8034 - val_mean_squared_error: 247.1264
+Epoch 4/100
+475/475 [==============================] - 4s 8ms/step - loss: 11.3038 - mean_squared_error: 206.1639 - val_loss: 10.2597 - val_mean_squared_error: 162.3945
+Epoch 5/100
+475/475 [==============================] - 4s 8ms/step - loss: 10.3053 - mean_squared_error: 171.7558 - val_loss: 9.6377 - val_mean_squared_error: 168.3057
+Epoch 6/100
+475/475 [==============================] - 4s 8ms/step - loss: 10.4016 - mean_squared_error: 167.5001 - val_loss: 10.2395 - val_mean_squared_error: 183.7831
+Epoch 7/100
+475/475 [==============================] - 4s 8ms/step - loss: 8.9160 - mean_squared_error: 129.5830 - val_loss: 9.0672 - val_mean_squared_error: 120.4043
+Epoch 8/100
+475/475 [==============================] - 4s 8ms/step - loss: 9.4558 - mean_squared_error: 142.7350 - val_loss: 10.1117 - val_mean_squared_error: 170.4585
+Epoch 9/100
+475/475 [==============================] - 4s 8ms/step - loss: 9.3873 - mean_squared_error: 136.4911 - val_loss: 7.4721 - val_mean_squared_error: 87.6410
+Epoch 10/100
+475/475 [==============================] - 4s 8ms/step - loss: 7.5399 - mean_squared_error: 90.6922 - val_loss: 10.0032 - val_mean_squared_error: 158.2884
+Epoch 11/100
+475/475 [==============================] - 4s 8ms/step - loss: 9.6339 - mean_squared_error: 135.1338 - val_loss: 6.8816 - val_mean_squared_error: 76.6951
+Epoch 12/100
+475/475 [==============================] - 4s 8ms/step - loss: 8.1114 - mean_squared_error: 98.7482 - val_loss: 7.7867 - val_mean_squared_error: 105.4576
+Epoch 13/100
+475/475 [==============================] - 4s 7ms/step - loss: 8.2165 - mean_squared_error: 101.8418 - val_loss: 8.7696 - val_mean_squared_error: 108.4834
+Epoch 14/100
+475/475 [==============================] - 4s 8ms/step - loss: 8.3717 - mean_squared_error: 102.5063 - val_loss: 9.8832 - val_mean_squared_error: 144.1149
+
+Epoch 00014: ReduceLROnPlateau reducing learning rate to 2.499999936844688e-05.
+Epoch 15/100
+475/475 [==============================] - 4s 8ms/step - loss: 5.2180 - mean_squared_error: 46.9926 - val_loss: 5.9924 - val_mean_squared_error: 59.1092
+Epoch 16/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.9941 - mean_squared_error: 42.6028 - val_loss: 5.9268 - val_mean_squared_error: 63.5464
+Epoch 17/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.8631 - mean_squared_error: 42.1964 - val_loss: 5.4421 - val_mean_squared_error: 54.6311
+Epoch 18/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.7821 - mean_squared_error: 40.3398 - val_loss: 5.3854 - val_mean_squared_error: 52.6771
+Epoch 19/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.6176 - mean_squared_error: 38.5587 - val_loss: 5.1379 - val_mean_squared_error: 47.2657
+Epoch 20/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.7000 - mean_squared_error: 39.4930 - val_loss: 5.1382 - val_mean_squared_error: 48.3175
+Epoch 21/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.7004 - mean_squared_error: 38.0190 - val_loss: 5.2597 - val_mean_squared_error: 50.6216
+Epoch 22/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.5090 - mean_squared_error: 37.4247 - val_loss: 5.5387 - val_mean_squared_error: 55.7626
+
+Epoch 00022: ReduceLROnPlateau reducing learning rate to 1e-05.
+Epoch 23/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.2559 - mean_squared_error: 33.2786 - val_loss: 4.9416 - val_mean_squared_error: 44.4856
+Epoch 24/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.2166 - mean_squared_error: 32.9852 - val_loss: 4.9895 - val_mean_squared_error: 45.8775
+Epoch 25/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.1810 - mean_squared_error: 32.4487 - val_loss: 4.8996 - val_mean_squared_error: 43.3909
+Epoch 26/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.1412 - mean_squared_error: 31.8315 - val_loss: 5.1457 - val_mean_squared_error: 48.8091
+Epoch 27/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.1596 - mean_squared_error: 32.0244 - val_loss: 4.9224 - val_mean_squared_error: 44.5418
+Epoch 28/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.1158 - mean_squared_error: 31.7602 - val_loss: 4.9088 - val_mean_squared_error: 44.4561
+Epoch 29/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.0492 - mean_squared_error: 31.0223 - val_loss: 4.9948 - val_mean_squared_error: 46.1832
+Epoch 30/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.0793 - mean_squared_error: 31.2998 - val_loss: 4.8377 - val_mean_squared_error: 43.2345
+Epoch 31/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.0172 - mean_squared_error: 30.5153 - val_loss: 4.7792 - val_mean_squared_error: 42.0061
+Epoch 32/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.0107 - mean_squared_error: 30.3295 - val_loss: 4.7754 - val_mean_squared_error: 42.1808
+Epoch 33/100
+475/475 [==============================] - 4s 8ms/step - loss: 4.0002 - mean_squared_error: 30.5542 - val_loss: 4.7487 - val_mean_squared_error: 41.6727
+Epoch 34/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.9358 - mean_squared_error: 29.4529 - val_loss: 4.8815 - val_mean_squared_error: 42.7898
+Epoch 35/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.9366 - mean_squared_error: 29.5919 - val_loss: 4.7471 - val_mean_squared_error: 41.8787
+Epoch 36/100
+475/475 [==============================] - 4s 7ms/step - loss: 3.8679 - mean_squared_error: 28.8007 - val_loss: 5.0231 - val_mean_squared_error: 46.6423
+Epoch 37/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.8535 - mean_squared_error: 28.7742 - val_loss: 4.8761 - val_mean_squared_error: 43.8480
+Epoch 38/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.9572 - mean_squared_error: 29.5633 - val_loss: 4.6540 - val_mean_squared_error: 40.0993
+Epoch 39/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.8410 - mean_squared_error: 28.4681 - val_loss: 4.7732 - val_mean_squared_error: 42.1929
+Epoch 40/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.8507 - mean_squared_error: 28.3305 - val_loss: 4.8012 - val_mean_squared_error: 42.6227
+Epoch 41/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.9034 - mean_squared_error: 28.9851 - val_loss: 4.6692 - val_mean_squared_error: 40.4480
+Epoch 42/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.7633 - mean_squared_error: 27.8226 - val_loss: 4.7703 - val_mean_squared_error: 42.0909
+Epoch 43/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.7713 - mean_squared_error: 27.3975 - val_loss: 4.6760 - val_mean_squared_error: 40.6513
+Epoch 44/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.8314 - mean_squared_error: 28.4373 - val_loss: 4.6014 - val_mean_squared_error: 39.3280
+Epoch 45/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.7505 - mean_squared_error: 27.2273 - val_loss: 4.6122 - val_mean_squared_error: 39.5527
+Epoch 46/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.7842 - mean_squared_error: 27.7349 - val_loss: 4.5798 - val_mean_squared_error: 38.9801
+Epoch 47/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.8015 - mean_squared_error: 27.7418 - val_loss: 4.6400 - val_mean_squared_error: 40.0982
+Epoch 48/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.7181 - mean_squared_error: 27.1977 - val_loss: 4.6018 - val_mean_squared_error: 39.2019
+Epoch 49/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6990 - mean_squared_error: 26.6722 - val_loss: 4.5635 - val_mean_squared_error: 38.7850
+Epoch 50/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.7311 - mean_squared_error: 27.0266 - val_loss: 4.5914 - val_mean_squared_error: 39.2897
+Epoch 51/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6677 - mean_squared_error: 26.4999 - val_loss: 4.5583 - val_mean_squared_error: 38.7258
+Epoch 52/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6855 - mean_squared_error: 26.5629 - val_loss: 4.5472 - val_mean_squared_error: 38.5174
+Epoch 53/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6745 - mean_squared_error: 26.5697 - val_loss: 4.5408 - val_mean_squared_error: 38.4315
+Epoch 54/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6784 - mean_squared_error: 26.4997 - val_loss: 4.5136 - val_mean_squared_error: 38.0139
+Epoch 55/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6161 - mean_squared_error: 25.5269 - val_loss: 4.5050 - val_mean_squared_error: 37.8457
+Epoch 56/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6608 - mean_squared_error: 26.4190 - val_loss: 4.5361 - val_mean_squared_error: 38.4381
+Epoch 57/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6504 - mean_squared_error: 26.0491 - val_loss: 4.6048 - val_mean_squared_error: 39.2443
+Epoch 58/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6169 - mean_squared_error: 25.6819 - val_loss: 4.4829 - val_mean_squared_error: 37.5399
+Epoch 59/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5769 - mean_squared_error: 25.0215 - val_loss: 4.4814 - val_mean_squared_error: 37.5802
+Epoch 60/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6161 - mean_squared_error: 25.6753 - val_loss: 4.7412 - val_mean_squared_error: 41.3094
+Epoch 61/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.6126 - mean_squared_error: 25.7517 - val_loss: 4.5395 - val_mean_squared_error: 38.3104
+Epoch 62/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5722 - mean_squared_error: 25.1204 - val_loss: 4.5988 - val_mean_squared_error: 39.4780
+Epoch 63/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5769 - mean_squared_error: 24.9036 - val_loss: 4.4972 - val_mean_squared_error: 37.6041
+Epoch 64/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5565 - mean_squared_error: 25.0100 - val_loss: 4.4513 - val_mean_squared_error: 37.0328
+Epoch 65/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5393 - mean_squared_error: 24.7378 - val_loss: 4.5166 - val_mean_squared_error: 37.7873
+Epoch 66/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5391 - mean_squared_error: 24.5752 - val_loss: 4.6740 - val_mean_squared_error: 40.2984
+Epoch 67/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5543 - mean_squared_error: 24.6985 - val_loss: 4.4962 - val_mean_squared_error: 37.5361
+Epoch 68/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5556 - mean_squared_error: 24.9602 - val_loss: 4.4374 - val_mean_squared_error: 36.9325
+Epoch 69/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4990 - mean_squared_error: 24.6456 - val_loss: 4.4241 - val_mean_squared_error: 36.7858
+Epoch 70/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4496 - mean_squared_error: 23.8845 - val_loss: 4.4168 - val_mean_squared_error: 36.6032
+Epoch 71/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4576 - mean_squared_error: 23.9399 - val_loss: 4.4296 - val_mean_squared_error: 36.7326
+Epoch 72/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.5085 - mean_squared_error: 24.4901 - val_loss: 4.4416 - val_mean_squared_error: 37.0463
+Epoch 73/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4891 - mean_squared_error: 24.0500 - val_loss: 4.4150 - val_mean_squared_error: 36.5888
+Epoch 74/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4120 - mean_squared_error: 23.5310 - val_loss: 4.6951 - val_mean_squared_error: 40.7469
+Epoch 75/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4109 - mean_squared_error: 23.2685 - val_loss: 4.5609 - val_mean_squared_error: 38.6922
+Epoch 76/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4643 - mean_squared_error: 23.8526 - val_loss: 4.5065 - val_mean_squared_error: 37.6437
+Epoch 77/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4260 - mean_squared_error: 23.4070 - val_loss: 4.4170 - val_mean_squared_error: 36.6374
+Epoch 78/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4732 - mean_squared_error: 24.0265 - val_loss: 4.3996 - val_mean_squared_error: 36.2367
+Epoch 79/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3823 - mean_squared_error: 23.3127 - val_loss: 4.4250 - val_mean_squared_error: 36.6549
+Epoch 80/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4062 - mean_squared_error: 23.4758 - val_loss: 4.3877 - val_mean_squared_error: 36.1440
+Epoch 81/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3505 - mean_squared_error: 22.7643 - val_loss: 4.5162 - val_mean_squared_error: 38.1156
+Epoch 82/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3994 - mean_squared_error: 23.5515 - val_loss: 4.3770 - val_mean_squared_error: 36.3591
+Epoch 83/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3919 - mean_squared_error: 22.7385 - val_loss: 4.3509 - val_mean_squared_error: 35.8545
+Epoch 84/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3508 - mean_squared_error: 22.7949 - val_loss: 4.4306 - val_mean_squared_error: 36.7454
+Epoch 85/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.4454 - mean_squared_error: 23.8236 - val_loss: 4.3552 - val_mean_squared_error: 35.9500
+Epoch 86/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3459 - mean_squared_error: 22.7896 - val_loss: 4.4441 - val_mean_squared_error: 36.9629
+Epoch 87/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3568 - mean_squared_error: 22.7678 - val_loss: 4.3494 - val_mean_squared_error: 35.6651
+Epoch 88/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.2677 - mean_squared_error: 21.9478 - val_loss: 4.4108 - val_mean_squared_error: 36.6667
+Epoch 89/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3347 - mean_squared_error: 22.2791 - val_loss: 4.3524 - val_mean_squared_error: 35.7543
+Epoch 90/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3282 - mean_squared_error: 22.0705 - val_loss: 4.3214 - val_mean_squared_error: 35.3996
+Epoch 91/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3205 - mean_squared_error: 22.1216 - val_loss: 4.3198 - val_mean_squared_error: 35.5117
+Epoch 92/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3040 - mean_squared_error: 22.2240 - val_loss: 4.3518 - val_mean_squared_error: 35.7024
+Epoch 93/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3090 - mean_squared_error: 22.2026 - val_loss: 4.3185 - val_mean_squared_error: 35.1860
+Epoch 94/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.2694 - mean_squared_error: 21.8911 - val_loss: 4.3108 - val_mean_squared_error: 35.2286
+Epoch 95/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3351 - mean_squared_error: 22.4629 - val_loss: 4.3496 - val_mean_squared_error: 35.6198
+Epoch 96/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.2591 - mean_squared_error: 21.9666 - val_loss: 4.3188 - val_mean_squared_error: 35.4805
+Epoch 97/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.3140 - mean_squared_error: 22.2733 - val_loss: 4.3434 - val_mean_squared_error: 35.6618
+Epoch 98/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.2421 - mean_squared_error: 21.6490 - val_loss: 4.2906 - val_mean_squared_error: 35.0566
+Epoch 99/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.2514 - mean_squared_error: 21.6444 - val_loss: 4.5036 - val_mean_squared_error: 37.5891
+Epoch 100/100
+475/475 [==============================] - 4s 8ms/step - loss: 3.2593 - mean_squared_error: 21.5925 - val_loss: 4.4496 - val_mean_squared_error: 36.7258
+
+
+
+
+
+
+
+
+
+
+
+
+

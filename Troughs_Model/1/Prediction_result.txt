@@ -1,0 +1,8 @@
+p45_right_norm_1.bmp is overwritten
+p68_right_norm_1.bmp is overwritten
+p6_right_norm_2.bmp is overwritten
+
+total img = 709
+neg = 290
+pos = 419
+acc = 59%
