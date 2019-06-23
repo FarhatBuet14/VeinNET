@@ -1,19 +1,9 @@
-# USAGE
-# python click_and_crop.py --image jurassic_park_kitchen.jpg
-
-# import the necessary packages
 import cv2
 import numpy as np
 import pandas as pd 
 
 
 rest_neg_folder = './Troughs_Model/model_AccuEdges/Rest_Neg_images/'
-
-
-
-
-
-
 
 
 total_samples = 3
