@@ -7,7 +7,7 @@ import os
 import imgaug as ia
 import imgaug.augmenters as iaa
 from PIL import Image
-
+import shutil
 
 
 def get_accumEdged(image):
@@ -228,17 +228,19 @@ def extract_vein_image(image_name, points,
     
     return image_rotated, keypoints_rotated
 
-def cal_loss(image_name, vein_folder, loss_thresh = 180):
+def cal_loss(image_name, vein_folder, thresh_h = 180, thresh_l = 70):
     image = cv2.imread(vein_folder + image_name)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
-    accu = (gray <= loss_thresh)
+    accu = ((gray <= thresh_h)  & (gray >= thresh_l))
     true = np.count_nonzero(accu)
     false = (accu.shape[0] * accu.shape[1]) - true
     loss = false / (false + true)
     
     return loss
 
+def data_2_vein():
+    
 
 
 ############## Main Code ############
@@ -248,6 +250,10 @@ troughs_folder = "./Extracted/Troughs/"
 vein_folder = "./Extracted/Vein_Images/"
 bounding_box_folder = "./Extracted/Bounding_box/"
 extraction_folder = "./Extracted/"
+pos_vein_folder = "./Extracted/Vein_Images/pos_vein_img/"
+neg_vein_folder = "./Extracted/Vein_Images/neg_vein_img"
+
+
 
 filenames = os.listdir(data_folder)
 
@@ -300,8 +306,8 @@ for file in filenames:
             
             vein_loss.append(cal_loss(image_name = image_name, 
                                       vein_folder = vein_folder, 
-                                      loss_thresh = 180))
-
+                                      thresh_h = 200, thresh_l = 70))
+            
 
 
 error_files = np.array(error_files)
@@ -309,11 +315,23 @@ algo_extracted_files = np.array(algo_extracted_files)
 vein_loss = np.array(vein_loss)
 final_points = np.array(final_points)
 
+
+
+loss_thresh = 0.01
+pos_vein = algo_extracted_files[vein_loss <= loss_thresh]
+neg_vein = algo_extracted_files[vein_loss > loss_thresh]
+
+for image in pos_vein: shutil.copy(vein_folder + image, pos_vein_folder)
+for image in neg_vein: shutil.copy(vein_folder + image, neg_vein_folder)
+
+
 np.savez(extraction_folder + 'algo_result.npz', 
          algo_extracted_files = algo_extracted_files,
          error_files = error_files,
          points = final_points,
-         vein_loss = vein_loss)
+         vein_loss = vein_loss,
+         pos_vein = pos_vein,
+         neg_vein = neg_vein)
 
 
 
