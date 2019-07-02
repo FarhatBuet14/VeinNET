@@ -1,14 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue May 14 04:30:28 2019
-
-@author: User
-"""
-
-############################# Libraries ##########################
-#############################################################
-#############################################################
-
 import numpy as np
 import imutils
 import cv2
@@ -39,6 +28,7 @@ def find_contour_needed(accumEdged, length_threshold = 100):
     cnts = imutils.grab_contours(cnts)
     cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
 
+    # Delete the short contours less than length_threshold
     cnts_nedded = []
     Length = []
     for c in cnts:
@@ -51,7 +41,7 @@ def find_contour_needed(accumEdged, length_threshold = 100):
 
 
 
-def cnt_concat(cnts_nedded):
+def cnt_concat(cnts_nedded):   # Concatenate all contours
 
     all_cnts = np.zeros((1, 1, 2))
     
@@ -66,7 +56,7 @@ def cnt_concat(cnts_nedded):
 
 
 
-def get_trough_points(image, all_cnts):
+def get_trough_points(image, all_cnts): # Algorithm apply for finding valley points
     
     cnt_x = all_cnts[:, 0]
     cnt_y = all_cnts[:, 1]
@@ -84,7 +74,7 @@ def get_trough_points(image, all_cnts):
     troughs = np.array(sorted(troughs, key=itemgetter(0)))
     
     
-    ############  make one point #############
+    # make the closer points to one point 
     not_okay = True  
     while(not_okay): 
         
@@ -102,19 +92,17 @@ def get_trough_points(image, all_cnts):
             
             for i in range(0, len(troughs)-1):
                 if((dists[i] < 10) & (merge == False)):
-                    #print("merge")
                     troughs_final.append( ((troughs[i, :] + troughs[i+1, :]) / 2).astype(int) )
                     merge = True
                 else:
                     if(merge == False):           
-                        #print("not_merge")
                         troughs_final.append(troughs[i, :])
                     else:
                         merge = False
             
             troughs = np.array(troughs_final)
     
-    ############  remove other points #############
+    # remove other points except troughs
     
     pointed = [[0,0]]
     for i in range(0, len(troughs)): 
@@ -132,6 +120,7 @@ def get_trough_points(image, all_cnts):
     pointed = np.array(pointed)
     troughs = pointed[1:, :]
 
+    # Draw Trough points on Image
     for point in troughs:   
         point = point.astype(int)
         cv2.circle(image, (point[0], 
@@ -140,10 +129,10 @@ def get_trough_points(image, all_cnts):
     
     return image, troughs
 
-
+# Get those exact two points from the troughs
 def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
     
-    if(len(points) < 3):
+    if(len(points) < 3): # Error if the troughs can not be calculated through algorithm
         err = image_name
     
     else:
@@ -179,41 +168,42 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
 
 ############## Main Code ############
 
-folder_path = "./HandVeinDatabase/Final/"
-save_folder_path = "./Vein_Image/Final/"
+folder_path = "./Data/All/"
+save_folder_path = "./Extracted/Troughs/"
 
 filenames = os.listdir(folder_path)
 error_files = []
 count = 0
 for file in filenames:
-    
-    count += 1
-    image_name = file
-    image = cv2.imread(folder_path + image_name)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
-    accumEdged = get_accumEdged(gray)
-    
-    length_threshold = 20
-    [cnts_nedded, length_cnt] = find_contour_needed(accumEdged, length_threshold)
-    all_cnts = cnt_concat(cnts_nedded)
-    cnt_image = cv2.drawContours(gray.copy(), 
-                                 np.array(all_cnts).reshape((-1,1,2)).astype(np.int32),
-                                 -1, (0,255,0), 3)
-    
-    trough_image , troughs = np.array(get_trough_points(gray.copy(), all_cnts))
-    
-    final_trough_image, points, err = get_two_points(gray.copy(), image_name, troughs, 
-                                                     height = 90, width = 50, th = 20)
-    if(err != None):
-        error_files.append(err)
+    file_type = file.split(".")[1]
+    if(file_type == "bmp"): 
+        count += 1
+        image_name = file
+        image = cv2.imread(folder_path + image_name)
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
-    else:
-        all_img = cv2.hconcat((accumEdged, cnt_image))
-        all_img = cv2.hconcat((all_img, trough_image))
-        all_img = cv2.hconcat((all_img, final_trough_image))
+        accumEdged = get_accumEdged(gray)
         
-        cv2.imwrite(save_folder_path + image_name, all_img)
+        length_threshold = 20
+        [cnts_nedded, length_cnt] = find_contour_needed(accumEdged, length_threshold)
+        all_cnts = cnt_concat(cnts_nedded)
+        cnt_image = cv2.drawContours(gray.copy(), 
+                                     np.array(all_cnts).reshape((-1,1,2)).astype(np.int32),
+                                     -1, (0,255,0), 3)
+        
+        trough_image , troughs = np.array(get_trough_points(gray.copy(), all_cnts))
+        
+        final_trough_image, points, err = get_two_points(gray.copy(), image_name, troughs, 
+                                                         height = 90, width = 50, th = 20)
+        if(err != None):
+            error_files.append(err)
+            
+        else:
+            all_img = cv2.hconcat((accumEdged, cnt_image))
+            all_img = cv2.hconcat((all_img, trough_image))
+            all_img = cv2.hconcat((all_img, final_trough_image))
+            
+            cv2.imwrite(save_folder_path + image_name, all_img)
         
 
 #cv2.imshow('bla', image)     
@@ -224,16 +214,44 @@ for file in filenames:
 #        cv2.destroyAllWindows()
 #        break
 
-error_files = np.array(error_files)
-
-np.savez(save_folder_path + 'Error.npz', error_files = error_files)
-
-
-#dataset = np.load(save_folder_path + 'Error.npz') 
+#error_files = np.array(error_files)
 #
-#err_files = dataset['error_files'].astype(str)
-#
-#image = cv2.imread(folder_path + err_files[0])
+#np.savez(save_folder_path + 'Error.npz', error_files = error_files)
+
+
+error_data = np.load(save_folder_path + 'Error.npz') 
+
+err_files = error_data['error_files'].astype(str)
+
+image = cv2.imread(folder_path + err_files[0])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
