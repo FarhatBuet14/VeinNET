@@ -168,86 +168,85 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
     return image, points, err
 
 
-def extract_vein_image(image_name, points, height = 90, width = 70, th = 10,
-                       folder_path = folder_path, vein_fldr = vein_fldr):
-    top_left = points[0]
-    top_right = points[1]
-    
-    points = points.reshape((1, 2, 2))
-    
-    angle  = (180/np.pi) * (np.arctan((top_left[1] - top_right[1])/
-                            (top_left[0] - top_right[0])))
-    
-    image_rotated , keypoints_rotated = iaa.Affine(rotate=-angle)(images=image, 
-                                  keypoints=points)
-    
-    image_rotated = image_rotated.reshape((240, 300))
-    keypoints_rotated = keypoints_rotated.reshape((2, 2))
-    
-    top_left_ = keypoints_rotated[0]    
-    top_left_ = tuple(top_left_.reshape(1, -1)[0])
-    
-    center = np.zeros((2, )).astype(int)
-    center[0] = top_left_[0] + int(width/2)  - th
-    center[1] = top_left_[1] + int(height/2)
-    center = tuple(center.reshape(1, -1)[0])
-    
-    crop = cv2.getRectSubPix(image_rotated, (width, height), center) 
-    
-    filenames = os.listdir(cropped_fldr)
-    
-    if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
-    
-    cv2.imwrite(cropped_fldr + test_names[sample], crop)
-    
-    tl = np.zeros((2, )).astype(int)
-    tl[0] = center[0] - int(width/2)  # 25
-    tl[1] = center[1] - int(height/2)
-    tl = tuple(tl.reshape(1, -1)[0])
-    
-    br = np.zeros((2, )).astype(int)
-    br[0] = center[0] + int(width/2)  # 25
-    br[1] = center[1] + int(height/2)
-    br = tuple(br.reshape(1, -1)[0])
-    
-    
-    image_rotated = draw_troughs(image_rotated, keypoints_rotated)
-    image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
-    
-    filenames = os.listdir(prediction_fldr)
-    
-    if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
-    
-    cv2.imwrite(prediction_fldr + test_names[sample], image_rotated)
-
-    count += 1
-    
-    return image_rotated, keypoints_rotated
-    
-
-#img, pp = predicted_result(X_test_gray = X_test_gray, height = 90, width = 70, th = 10,
-#                           prediction_fldr = prediction_fldr, cropped_fldr = cropped_fldr,
-#                           y_pred = y_pred, test_names = test_names)    
-
-
-
-
-
+#def extract_vein_image(image_name, points, height = 90, width = 70, th = 10,
+#                       data_folder, vein_fldr, bounding_box_folder):
+#    top_left = points[0]
+#    top_right = points[1]
+#    
+#    angle  = (180/np.pi) * (np.arctan((top_left[1] - top_right[1])/
+#                            (top_left[0] - top_right[0])))
+#    
+#    points = points.reshape((1, 2, 2))
+#    image_rotated , keypoints_rotated = iaa.Affine(rotate=-angle)(images=image, 
+#                                  keypoints=points)
+#    
+#    image_rotated = image_rotated.reshape((240, 300))
+#    keypoints_rotated = keypoints_rotated.reshape((2, 2))
+#    
+#    top_left_ = keypoints_rotated[0]    
+#    top_left_ = tuple(top_left_.reshape(1, -1)[0])
+#    
+#    center = np.zeros((2, )).astype(int)
+#    center[0] = top_left_[0] + int(width/2)  - th
+#    center[1] = top_left_[1] + int(height/2)
+#    center = tuple(center.reshape(1, -1)[0])
+#    
+#    crop = cv2.getRectSubPix(image_rotated, (width, height), center) 
+#    
+#    filenames = os.listdir(vein_fldr)
+#    if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
+#    
+#    cv2.imwrite(vein_fldr + image_name, crop)
+#    
+#    tl = np.zeros((2, )).astype(int)
+#    tl[0] = center[0] - int(width/2)  # 25
+#    tl[1] = center[1] - int(height/2)
+#    tl = tuple(tl.reshape(1, -1)[0])
+#    
+#    br = np.zeros((2, )).astype(int)
+#    br[0] = center[0] + int(width/2)  # 25
+#    br[1] = center[1] + int(height/2)
+#    br = tuple(br.reshape(1, -1)[0])
+#    
+#    
+#    image_rotated = draw_troughs(image_rotated, keypoints_rotated)
+#    image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
+#    
+#    filenames = os.listdir(prediction_fldr)
+#    
+#    if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
+#    
+#    cv2.imwrite(prediction_fldr + test_names[sample], image_rotated)
+#
+#    count += 1
+#    
+#    return image_rotated, keypoints_rotated
+#    
 
 ############## Main Code ############
 
-folder_path = "./Data/All/"
-save_folder_path = "./Extracted/Troughs/"
+data_folder = "./Data/All/"
+troughs_folder = "./Extracted/Troughs/"
+vein_fldr = "./Extracted/Vein_Images/"
+bounding_box_folder = "./Extracted/Bounding_box/"
+extraction_folder = "./Extracted/"
 
-filenames = os.listdir(folder_path)
-error_files = []
+
+
+
+filenames = os.listdir(data_folder)
+
+error_files = [] # can not be calculated through algorithm
+algo_extracted_files = [] #  calculated through algorithm
+final_points = []
+
 count = 0
 for file in filenames:
     file_type = file.split(".")[1]
     if(file_type == "bmp"): 
         count += 1
         image_name = file
-        image = cv2.imread(folder_path + image_name)
+        image = cv2.imread(data_folder + image_name)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         
         accumEdged = get_accumEdged(gray)
@@ -263,15 +262,19 @@ for file in filenames:
         
         final_trough_image, points, err = get_two_points(gray.copy(), image_name, troughs, 
                                                          height = 90, width = 50, th = 20)
-        if(err != None):
+        if(err != None): #if the troughs can not be calculated through algorithm
             error_files.append(err)
             
         else:
+            
+            algo_extracted_files.append(image_name)
+            final_points.append(points)
+            
             all_img = cv2.hconcat((accumEdged, cnt_image))
             all_img = cv2.hconcat((all_img, trough_image))
             all_img = cv2.hconcat((all_img, final_trough_image))
             
-            cv2.imwrite(save_folder_path + image_name, all_img)
+            cv2.imwrite(troughs_folder + image_name, all_img)
         
 
 #cv2.imshow('bla', image)     
@@ -283,14 +286,14 @@ for file in filenames:
 #        break
 
 error_files = np.array(error_files)
+algo_extracted_files = np.array(algo_extracted_files)
 
-np.savez(save_folder_path + 'Error.npz', error_files = error_files)
+np.savez(extraction_folder + 'algo_result.npz', 
+         algo_extracted_files = algo_extracted_files,
+         error_files = error_files,
+         points = final_points)
 
-
-#error_files = np.load(save_folder_path + 'Error.npz') 
-#error_files = error_data['error_files'].astype(str)
-
-image = cv2.imread(folder_path + error_files[0])
+image = cv2.imread(data_folder + error_files[0])
 
 
 
