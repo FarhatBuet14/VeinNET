@@ -192,31 +192,32 @@ def extract_vein_image(image_name, points,
                             (top_left[0] - top_right[0])))
     
     points = points.reshape((1, 2, 2))
+    image = image.reshape((1, 240, 300, 3))
     image_rotated , keypoints_rotated = iaa.Affine(rotate=-angle)(images=image, 
                                   keypoints=points)
     
-    image_rotated = image_rotated.reshape((240, 300))
+    image_rotated = image_rotated.reshape((240, 300, 3))
     keypoints_rotated = keypoints_rotated.reshape((2, 2))
     
     top_left_ = keypoints_rotated[0]    
     top_left_ = tuple(top_left_.reshape(1, -1)[0])
     
     center = np.zeros((2, )).astype(int)
-    center[0] = top_left_[0] + int(width/2)  - th
-    center[1] = top_left_[1] + int(height/2)
+    center[0] = top_left_[0] + int(70/2)  - 10
+    center[1] = top_left_[1] + int(90/2)
     center = tuple(center.reshape(1, -1)[0])
     
-    crop = cv2.getRectSubPix(image_rotated, (width, height), center) 
+    crop = cv2.getRectSubPix(image_rotated, (70, 90), center) 
     cv2.imwrite(vein_fldr + image_name, crop)
     
     tl = np.zeros((2, )).astype(int)
-    tl[0] = center[0] - int(width/2)  # 25
-    tl[1] = center[1] - int(height/2)
+    tl[0] = center[0] - int(70/2)  # 25
+    tl[1] = center[1] - int(90/2)
     tl = tuple(tl.reshape(1, -1)[0])
     
     br = np.zeros((2, )).astype(int)
-    br[0] = center[0] + int(width/2)  # 25
-    br[1] = center[1] + int(height/2)
+    br[0] = center[0] + int(70/2)  # 25
+    br[1] = center[1] + int(90/2)
     br = tuple(br.reshape(1, -1)[0])
     
     
@@ -281,11 +282,11 @@ for file in filenames:
             
             cv2.imwrite(troughs_folder + image_name, all_img)
             
-#            image_rotated, keypoints_rotated = extract_vein_image(
-#                    image_name = image_name, points = points,
-#                    data_folder = data_folder, vein_fldr = vein_fldr, 
-#                    bounding_box_folder = bounding_box_folder,
-#                    height = 90, width = 70, th = 10)
+            image_rotated, keypoints_rotated = extract_vein_image(
+                    image_name = image_name, points = points,
+                    data_folder = data_folder, vein_fldr = vein_fldr, 
+                    bounding_box_folder = bounding_box_folder,
+                    height = 90, width = 70, th = 10)
 
 error_files = np.array(error_files)
 algo_extracted_files = np.array(algo_extracted_files)
@@ -297,58 +298,26 @@ np.savez(extraction_folder + 'algo_result.npz',
 
 
 
-image = cv2.imread(data_folder + image_name)
-
-cv2.imshow('bla', image)     
-
-while True:    
-    key = cv2.waitKey(1)
-    if key == 27:
-        cv2.destroyAllWindows()
-        break
-
-top_left = points[0]
-top_right = points[1]
-
-angle  = (180/np.pi) * (np.arctan((top_left[1] - top_right[1])/
-                        (top_left[0] - top_right[0])))
-
-points = points.reshape((1, 2, 2))
-image_rotated , keypoints_rotated = iaa.Affine(rotate=-angle)(images=image, 
-                              keypoints=points)
-
-image_rotated = image_rotated.reshape((240, 300))
-keypoints_rotated = keypoints_rotated.reshape((2, 2))
-
-top_left_ = keypoints_rotated[0]    
-top_left_ = tuple(top_left_.reshape(1, -1)[0])
-
-center = np.zeros((2, )).astype(int)
-center[0] = top_left_[0] + int(width/2)  - th
-center[1] = top_left_[1] + int(height/2)
-center = tuple(center.reshape(1, -1)[0])
-
-crop = cv2.getRectSubPix(image_rotated, (width, height), center) 
-
-tl = np.zeros((2, )).astype(int)
-tl[0] = center[0] - int(width/2)  # 25
-tl[1] = center[1] - int(height/2)
-tl = tuple(tl.reshape(1, -1)[0])
-
-br = np.zeros((2, )).astype(int)
-br[0] = center[0] + int(width/2)  # 25
-br[1] = center[1] + int(height/2)
-br = tuple(br.reshape(1, -1)[0])
-
-
-image_rotated = draw_troughs(image_rotated, keypoints_rotated)
-image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
 
 
 
 
 
 
+
+
+
+filenames = os.listdir(data_folder)
+
+error_files = [] # can not be calculated through algorithm
+algo_extracted_files = [] #  calculated through algorithm
+final_points = []
+
+count = 0
+for file in filenames:
+    file_type = file.split(".")[1]
+    if(file_type == "bmp"): 
+        count += 1
 
 
 
