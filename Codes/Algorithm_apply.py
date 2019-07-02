@@ -181,7 +181,7 @@ def draw_troughs(img, points):
     return img
 
 def extract_vein_image(image_name, points,
-                       data_folder, vein_fldr, bounding_box_folder,
+                       data_folder, vein_folder, bounding_box_folder,
                        height = 90, width = 70, th = 10):
     
     image = cv2.imread(data_folder + image_name)
@@ -208,7 +208,7 @@ def extract_vein_image(image_name, points,
     center = tuple(center.reshape(1, -1)[0])
     
     crop = cv2.getRectSubPix(image_rotated, (70, 90), center) 
-    cv2.imwrite(vein_fldr + image_name, crop)
+    cv2.imwrite(vein_folder + image_name, crop)
     
     tl = np.zeros((2, )).astype(int)
     tl[0] = center[0] - int(70/2)  # 25
@@ -233,7 +233,7 @@ def extract_vein_image(image_name, points,
 
 data_folder = "./Data/All/"
 troughs_folder = "./Extracted/Troughs/"
-vein_fldr = "./Extracted/Vein_Images/"
+vein_folder = "./Extracted/Vein_Images/"
 bounding_box_folder = "./Extracted/Bounding_box/"
 extraction_folder = "./Extracted/"
 
@@ -245,6 +245,7 @@ filenames = os.listdir(data_folder)
 error_files = [] # can not be calculated through algorithm
 algo_extracted_files = [] #  calculated through algorithm
 final_points = []
+vein_loss = []
 
 count = 0
 for file in filenames:
@@ -284,9 +285,22 @@ for file in filenames:
             
             image_rotated, keypoints_rotated = extract_vein_image(
                     image_name = image_name, points = points,
-                    data_folder = data_folder, vein_fldr = vein_fldr, 
+                    data_folder = data_folder, vein_folder = vein_folder, 
                     bounding_box_folder = bounding_box_folder,
                     height = 90, width = 70, th = 10)
+            
+            
+            
+            image = cv2.imread(vein_folder + image_name)
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            thresh = 180
+            accu = (gray <= thresh)
+            true = np.count_nonzero(accu)
+            false = (accu.shape[0] * accu.shape[1]) - true
+            loss = false / (false + true)
+            vein_loss.append(loss)
+
+
 
 error_files = np.array(error_files)
 algo_extracted_files = np.array(algo_extracted_files)
@@ -307,18 +321,31 @@ np.savez(extraction_folder + 'algo_result.npz',
 
 
 
-filenames = os.listdir(data_folder)
-
-error_files = [] # can not be calculated through algorithm
-algo_extracted_files = [] #  calculated through algorithm
-final_points = []
-
-count = 0
-for file in filenames:
-    file_type = file.split(".")[1]
-    if(file_type == "bmp"): 
-        count += 1
-
+#filenames = os.listdir(vein_folder)
+#
+#image = cv2.imread(vein_folder + filenames[100])
+#gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+#thresh = 180
+#accu = (gray <= thresh)
+#true = np.count_nonzero(accu)
+#false = (accu.shape[0] * accu.shape[1]) - true
+#loss = false / (false + true)
+#
+#
+#accu[accu == True] = 1
+#accu[accu == False] = 0
+#
+#
+#
+#
+#
+#cv2.imshow('bla', gray)     
+#
+#while True:    
+#    key = cv2.waitKey(1)
+#    if key == 27:
+#        cv2.destroyAllWindows()
+#        break
 
 
 
