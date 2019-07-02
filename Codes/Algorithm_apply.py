@@ -135,7 +135,7 @@ def get_trough_points(image, all_cnts): # Algorithm apply for finding valley poi
 # Get those exact two points from the troughs
 def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
     
-    if(len(points) < 3): # Error if the troughs can not be calculated through algorithm
+    if(len(points) != 3): # Error if the troughs can not be calculated through algorithm
         err = image_name
     
     else:
@@ -281,17 +281,32 @@ for file in filenames:
             
             cv2.imwrite(troughs_folder + image_name, all_img)
             
-            image_rotated, keypoints_rotated = extract_vein_image(
-                    image_name = image_name, points = points,
-                    data_folder = data_folder, vein_fldr = vein_fldr, 
-                    bounding_box_folder = bounding_box_folder,
-                    height = 90, width = 70, th = 10)
+#            image_rotated, keypoints_rotated = extract_vein_image(
+#                    image_name = image_name, points = points,
+#                    data_folder = data_folder, vein_fldr = vein_fldr, 
+#                    bounding_box_folder = bounding_box_folder,
+#                    height = 90, width = 70, th = 10)
 
+error_files = np.array(error_files)
+algo_extracted_files = np.array(algo_extracted_files)
 
+np.savez(extraction_folder + 'algo_result.npz', 
+         algo_extracted_files = algo_extracted_files,
+         error_files = error_files,
+         points = final_points)
 
 
 
 image = cv2.imread(data_folder + image_name)
+
+cv2.imshow('bla', image)     
+
+while True:    
+    key = cv2.waitKey(1)
+    if key == 27:
+        cv2.destroyAllWindows()
+        break
+
 top_left = points[0]
 top_right = points[1]
 
@@ -328,56 +343,6 @@ br = tuple(br.reshape(1, -1)[0])
 
 image_rotated = draw_troughs(image_rotated, keypoints_rotated)
 image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#cv2.imshow('bla', image)     
-#
-#while True:    
-#    key = cv2.waitKey(1)
-#    if key == 27:
-#        cv2.destroyAllWindows()
-#        break
-
-error_files = np.array(error_files)
-algo_extracted_files = np.array(algo_extracted_files)
-
-np.savez(extraction_folder + 'algo_result.npz', 
-         algo_extracted_files = algo_extracted_files,
-         error_files = error_files,
-         points = final_points)
-
-image = cv2.imread(data_folder + error_files[0])
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
