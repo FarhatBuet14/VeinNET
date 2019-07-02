@@ -227,7 +227,19 @@ def extract_vein_image(image_name, points,
     cv2.imwrite(bounding_box_folder + image_name, image_rotated)
     
     return image_rotated, keypoints_rotated
+
+def cal_loss(image_name, vein_folder, loss_thresh = 180):
+    image = cv2.imread(vein_folder + image_name)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     
+    accu = (gray <= loss_thresh)
+    true = np.count_nonzero(accu)
+    false = (accu.shape[0] * accu.shape[1]) - true
+    loss = false / (false + true)
+    
+    return loss
+
+
 
 ############## Main Code ############
 
@@ -236,9 +248,6 @@ troughs_folder = "./Extracted/Troughs/"
 vein_folder = "./Extracted/Vein_Images/"
 bounding_box_folder = "./Extracted/Bounding_box/"
 extraction_folder = "./Extracted/"
-
-
-
 
 filenames = os.listdir(data_folder)
 
@@ -289,67 +298,22 @@ for file in filenames:
                     bounding_box_folder = bounding_box_folder,
                     height = 90, width = 70, th = 10)
             
-            
-            
-            image = cv2.imread(vein_folder + image_name)
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            thresh = 180
-            accu = (gray <= thresh)
-            true = np.count_nonzero(accu)
-            false = (accu.shape[0] * accu.shape[1]) - true
-            loss = false / (false + true)
-            vein_loss.append(loss)
+            vein_loss.append(cal_loss(image_name = image_name, 
+                                      vein_folder = vein_folder, 
+                                      loss_thresh = 180))
 
 
 
 error_files = np.array(error_files)
 algo_extracted_files = np.array(algo_extracted_files)
+vein_loss = np.array(vein_loss)
+final_points = np.array(final_points)
 
 np.savez(extraction_folder + 'algo_result.npz', 
          algo_extracted_files = algo_extracted_files,
          error_files = error_files,
-         points = final_points)
-
-
-
-
-
-
-
-
-
-
-
-
-#filenames = os.listdir(vein_folder)
-#
-#image = cv2.imread(vein_folder + filenames[100])
-#gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-#thresh = 180
-#accu = (gray <= thresh)
-#true = np.count_nonzero(accu)
-#false = (accu.shape[0] * accu.shape[1]) - true
-#loss = false / (false + true)
-#
-#
-#accu[accu == True] = 1
-#accu[accu == False] = 0
-#
-#
-#
-#
-#
-#cv2.imshow('bla', gray)     
-#
-#while True:    
-#    key = cv2.waitKey(1)
-#    if key == 27:
-#        cv2.destroyAllWindows()
-#        break
-
-
-
-
+         points = final_points,
+         vein_loss = vein_loss)
 
 
 
