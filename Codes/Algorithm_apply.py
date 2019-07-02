@@ -4,6 +4,9 @@ import cv2
 from operator import itemgetter
 import math
 import os
+import imgaug as ia
+import imgaug.augmenters as iaa
+from PIL import Image
 
 
 
@@ -165,6 +168,71 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
     return image, points, err
 
 
+def extract_vein_image(image_name, points, height = 90, width = 70, th = 10,
+                       folder_path = folder_path, vein_fldr = vein_fldr):
+    top_left = points[0]
+    top_right = points[1]
+    
+    points = points.reshape((1, 2, 2))
+    
+    angle  = (180/np.pi) * (np.arctan((top_left[1] - top_right[1])/
+                            (top_left[0] - top_right[0])))
+    
+    image_rotated , keypoints_rotated = iaa.Affine(rotate=-angle)(images=image, 
+                                  keypoints=points)
+    
+    image_rotated = image_rotated.reshape((240, 300))
+    keypoints_rotated = keypoints_rotated.reshape((2, 2))
+    
+    top_left_ = keypoints_rotated[0]    
+    top_left_ = tuple(top_left_.reshape(1, -1)[0])
+    
+    center = np.zeros((2, )).astype(int)
+    center[0] = top_left_[0] + int(width/2)  - th
+    center[1] = top_left_[1] + int(height/2)
+    center = tuple(center.reshape(1, -1)[0])
+    
+    crop = cv2.getRectSubPix(image_rotated, (width, height), center) 
+    
+    filenames = os.listdir(cropped_fldr)
+    
+    if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
+    
+    cv2.imwrite(cropped_fldr + test_names[sample], crop)
+    
+    tl = np.zeros((2, )).astype(int)
+    tl[0] = center[0] - int(width/2)  # 25
+    tl[1] = center[1] - int(height/2)
+    tl = tuple(tl.reshape(1, -1)[0])
+    
+    br = np.zeros((2, )).astype(int)
+    br[0] = center[0] + int(width/2)  # 25
+    br[1] = center[1] + int(height/2)
+    br = tuple(br.reshape(1, -1)[0])
+    
+    
+    image_rotated = draw_troughs(image_rotated, keypoints_rotated)
+    image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
+    
+    filenames = os.listdir(prediction_fldr)
+    
+    if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
+    
+    cv2.imwrite(prediction_fldr + test_names[sample], image_rotated)
+
+    count += 1
+    
+    return image_rotated, keypoints_rotated
+    
+
+#img, pp = predicted_result(X_test_gray = X_test_gray, height = 90, width = 70, th = 10,
+#                           prediction_fldr = prediction_fldr, cropped_fldr = cropped_fldr,
+#                           y_pred = y_pred, test_names = test_names)    
+
+
+
+
+
 
 ############## Main Code ############
 
@@ -214,16 +282,15 @@ for file in filenames:
 #        cv2.destroyAllWindows()
 #        break
 
-#error_files = np.array(error_files)
-#
-#np.savez(save_folder_path + 'Error.npz', error_files = error_files)
+error_files = np.array(error_files)
+
+np.savez(save_folder_path + 'Error.npz', error_files = error_files)
 
 
-error_data = np.load(save_folder_path + 'Error.npz') 
+#error_files = np.load(save_folder_path + 'Error.npz') 
+#error_files = error_data['error_files'].astype(str)
 
-err_files = error_data['error_files'].astype(str)
-
-image = cv2.imread(folder_path + err_files[0])
+image = cv2.imread(folder_path + error_files[0])
 
 
 
