@@ -380,19 +380,3 @@ np.savez(extraction_folder + 'result.npz',
          vein_loss = vein_loss,
          pos_vein = pos_vein,
          neg_vein = neg_vein)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
