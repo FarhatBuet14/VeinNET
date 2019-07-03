@@ -1,26 +1,39 @@
-############################  Import Libraries  ###############################
-###############################################################################
+# -*- coding: utf-8 -*-
+"""
+Created on Fri May 24 11:30:15 2019
+
+@author: User
+"""
 
 import cv2
 import numpy as np
+import os
 
-data_folder = "./Data/All/"
-extraction_folder = "./Extracted/"
+def get_accumEdged(image):
+    accumEdged = np.zeros(image.shape[:2], dtype="uint8")
 
-error_data = np.load(extraction_folder + 'result.npz')
-error_files = error_data['error_files']
-neg_vein = error_data['neg_vein']
+    # loop over the blue, green, and red channels, respectively
+    for chan in cv2.split(image):
+        chan = cv2.medianBlur(chan, 3)
+        edged = cv2.Canny(chan, 50, 150)
+        accumEdged = cv2.bitwise_or(accumEdged, edged)
+        
+    return accumEdged
 
-total_images = np.concatenate((error_files, neg_vein), axis = 0)
+
+
+rest_neg_folder = './Troughs_Model/model_AccuEdges/1/Rest_Neg_images/'
+filenames = os.listdir(rest_neg_folder)
+
+datafile = './Troughs_Model/model_AccuEdges/1/neg_img_data.npz'    
 
 points = []
 point = []
 names = []
 images = []
 count = 0
-for i in range(0, len(total_images)):
+for file in filenames:
 
-    # Define mouse event
     def mouse_drawing(event, x, y, flags, params):
         if event == cv2.EVENT_LBUTTONDOWN:
             print(str(x) + " , " + str(y))
@@ -30,14 +43,18 @@ for i in range(0, len(total_images)):
     cv2.namedWindow("Frame")
     cv2.setMouseCallback("Frame", mouse_drawing)
         
-    img = cv2.imread(data_folder + total_images[i])    
+    img = cv2.imread(rest_neg_folder + file)    
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)    
+    accumEdged = get_accumEdged(gray)
+
     cv2.imshow("Frame", img)
+       
     while True:    
         key = cv2.waitKey(1)
         if key == 27:
-            images.append(img)
+            images.append(accumEdged)
             points.append(point)
-            names.append(total_images[i])
+            names.append(file)
             point = []
             count += 1
             print("done - " + str(count))
@@ -46,10 +63,10 @@ for i in range(0, len(total_images)):
 
 points = np.array(points)
 
-np.savez(extraction_folder + 'manual_selsction_data.npz',
-         images = images,
-         manual_points = points,
-         names = names)
+# np.savez(datafile,
+#          X = images,
+#          Y = points,
+#          train_names = names)
 
 
 #data = np.load(datafile)

@@ -373,7 +373,7 @@ pos_vein, neg_vein = distr_pos_neg_vein(vein_folder = vein_folder,
                                loss_thresh = 0.01)
 
 # Save all the data to a .npz file
-np.savez(extraction_folder + 'result.npz', 
+np.savez(extraction_folder + 'algo_result.npz', 
          algo_extracted_files = algo_extracted_files,
          error_files = error_files,
          points = final_points,
