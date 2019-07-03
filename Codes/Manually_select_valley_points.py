@@ -4,7 +4,7 @@
 import cv2
 import numpy as np
 
-data_folder = "./Data/All/"
+data_folder = "./Data/Dataset/"
 extraction_folder = "./Extracted/"
 
 error_data = np.load(extraction_folder + 'result.npz')

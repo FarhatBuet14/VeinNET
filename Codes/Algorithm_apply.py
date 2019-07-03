@@ -342,7 +342,7 @@ def distr_pos_neg_vein(vein_folder, vein_names, vein_loss,
 ###############################################################################
 ################################ Main Code ####################################
 
-data_folder = "./Data/All/"
+data_folder = "./Data/Dataset/"
 extraction_folder = "./Extracted/"
 troughs_folder = "./Extracted/Troughs/"
 vein_folder = "./Extracted/Vein_Images/"
