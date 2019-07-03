@@ -258,8 +258,6 @@ for file in algo_select_names:
     shutil.copy(data_folder + file, train_data_folder + file)
     img = cv2.imread(train_data_folder + file)
     accu = get_accumEdged(img)
-    img = img.reshape((1, 240*300*3))
-    accu = accu.reshape((1, 240*300))
     X_train_bmp.append(img)
     X_train.append(accu)
 
@@ -275,8 +273,6 @@ for file in manual_select_names:
     shutil.copy(data_folder + file, test_data_folder + file)
     img = cv2.imread(test_data_folder + file)
     accu = get_accumEdged(img)
-    img = img.reshape((1, 240*300*3))
-    accu = accu.reshape((1, 240*300))
     X_test_bmp.append(img)
     X_test.append(accu)
 
@@ -286,7 +282,7 @@ y_test = manual_select_points.reshape((len(manual_select_points), 4))
 
 
 # Save all the data to a .npz file
-np.savez(data_folder - 'Dataset/' + 'train_test_data.npz', 
+np.savez(data_folder + 'train_test_data.npz', 
          X_train_bmp = X_train_bmp,
          X_train = X_train,
          y_train = y_train,
