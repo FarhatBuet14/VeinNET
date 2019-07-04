@@ -253,12 +253,14 @@ _, _, algo_select_points = data_2_points(algo_select_names, data_folder, cnt_len
 X_train_bmp = []
 X_train_gray = []
 X_train = []
+X_train_names = []
 
 for file in algo_select_names:
     shutil.copy(data_folder + file, train_data_folder + file)
     img = cv2.imread(train_data_folder + file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     accu = get_accumEdged(img)
+    X_train_names.append(file)
     X_train_bmp.append(img)
     X_train_gray.append(gray)
     X_train.append(accu)
@@ -272,12 +274,14 @@ y_train = algo_select_points.reshape((len(algo_select_points), 4))
 X_test_bmp = []
 X_test_gray = []
 X_test = []
+X_test_names = []
 
 for file in manual_select_names:
     shutil.copy(data_folder + file, test_data_folder + file)
     img = cv2.imread(test_data_folder + file)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     accu = get_accumEdged(img)
+    X_test_names.append(file)
     X_test_bmp.append(img)
     X_test_gray.append(gray)
     X_test.append(accu)
@@ -289,11 +293,13 @@ y_test = manual_select_points.reshape((len(manual_select_points), 4))
 
 
 # Save all the data to a .npz file
-np.savez(data_folder + 'train_test_data_without_augmetation.npz.npz', 
+np.savez(data_folder + 'train_test_data_without_augmetation.npz', 
+         X_train_names = X_train_names,
          X_train_bmp = X_train_bmp,
          X_train_gray = X_train_gray,
          X_train = X_train,
          y_train = y_train,
+         X_test_names = X_test_names,
          X_test_bmp = X_test_bmp,
          X_test_gray = X_test_gray,
          X_test = X_test,

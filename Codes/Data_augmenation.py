@@ -3,6 +3,7 @@
 
 import numpy as np
 import imgaug.augmenters as iaa
+import cv2
 
 ##############################  Import Data  ##################################
 ###############################################################################
@@ -17,131 +18,29 @@ data_folder = "./Data/"
 extraction_folder = "./Extracted/"
 train_data_folder = "./Data/Train_Data/"
 test_data_folder = "./Data/Test_Data/"
+Aug_train_data_folder = './Data/Augmented_Train_data/'
+Aug_data_with_points_folder = './Data/Augmented_Train_data/Augmented_train_data_with_points/'
 
 data = np.load(data_folder + 'train_test_data_without_augmetation.npz') 
-
 X_train_bmp = data['X_train_bmp']
-X_train_gray = data['X_train_gray']
-X_train = data['X_train']
+X_train_names = data['X_train_names'].astype(str)
 y_train = data['y_train']
 
+#########################  Find Accumulated Image  ############################
+###############################################################################
 
-images = X.reshape((X.shape[0], X.shape[1],
-                           X.shape[2], 1))
-keypoints = y.reshape((y.shape[0], 3, 2))
+def get_accumEdged(image):
+    accumEdged = np.zeros(image.shape[:2], dtype="uint8")
 
+    for chan in cv2.split(image):
+        chan = cv2.medianBlur(chan, 3)
+        edged = cv2.Canny(chan, 50, 150)
+        accumEdged = cv2.bitwise_or(accumEdged, edged)
+        
+    return accumEdged
 
-points = []
-for point in keypoints:
-    points.append(point)
-
-
-
-
-
-
-images_aug_1 , keypoints_aug_1 = iaa.Affine(rotate=30)(images=images[:75], 
-                                      keypoints=points[:75])
-
-images_aug_2 , keypoints_aug_2 = iaa.Affine(rotate=50)(images=images[75:150], 
-                                      keypoints=points[75:150])
-
-images_aug_3 , keypoints_aug_3 = iaa.Affine(rotate=60)(images=images[150:225], 
-                                      keypoints=points[150:225])
-
-images_aug_4 , keypoints_aug_4 = iaa.Affine(rotate=80)(images=images[225:300], 
-                                      keypoints=points[225:300])
-
-images_aug_5 , keypoints_aug_5 = iaa.Affine(rotate=-30)(images=images[300:375], 
-                                      keypoints=points[300:375])
-
-images_aug_6 , keypoints_aug_6 = iaa.Affine(rotate=-50)(images=images[375:450], 
-                                      keypoints=points[375:450])
-
-images_aug_7 , keypoints_aug_7 = iaa.Affine(rotate=-60)(images=images[450:525], 
-                                      keypoints=points[450:525])
-
-images_aug_8 , keypoints_aug_8 = iaa.Affine(rotate=-80)(images=images[525:600], 
-                                      keypoints=points[525:600])
-
-
-images_aug_ = np.concatenate((images_aug_1, images_aug_2, images_aug_3, images_aug_4,
-                             images_aug_5, images_aug_6, images_aug_7, images_aug_8), axis = 0)
-
-keypoints_aug_ = np.concatenate((keypoints_aug_1, keypoints_aug_2, 
-                                keypoints_aug_3, keypoints_aug_4,
-                                keypoints_aug_5, keypoints_aug_6, 
-                                keypoints_aug_7, keypoints_aug_8), axis = 0)
-
-
-
-images_lr , keypoints_lr = iaa.Fliplr(1.0)(images=images[600:1212], 
-                                       keypoints=points[600:1212])
-
-images_aug_1 , keypoints_aug_1 = iaa.Affine(rotate=30)(images=images_lr[:75], 
-                                      keypoints=keypoints_lr[:75])
-
-images_aug_2 , keypoints_aug_2 = iaa.Affine(rotate=50)(images=images_lr[75:150], 
-                                      keypoints=keypoints_lr[75:150])
-
-images_aug_3 , keypoints_aug_3 = iaa.Affine(rotate=60)(images=images_lr[150:225], 
-                                      keypoints=keypoints_lr[150:225])
-
-images_aug_4 , keypoints_aug_4 = iaa.Affine(rotate=80)(images=images_lr[225:300], 
-                                      keypoints=keypoints_lr[225:300])
-
-images_aug_5 , keypoints_aug_5 = iaa.Affine(rotate=-30)(images=images_lr[300:375], 
-                                      keypoints=keypoints_lr[300:375])
-
-images_aug_6 , keypoints_aug_6 = iaa.Affine(rotate=-50)(images=images_lr[375:450], 
-                                      keypoints=keypoints_lr[375:450])
-
-images_aug_7 , keypoints_aug_7 = iaa.Affine(rotate=-60)(images=images_lr[450:525], 
-                                      keypoints=keypoints_lr[450:525])
-
-images_aug_8 , keypoints_aug_8 = iaa.Affine(rotate=-80)(images=images_lr[525:612], 
-                                      keypoints=keypoints_lr[525:612])
-
-
-images_aug = np.concatenate((images_aug_1, images_aug_2, images_aug_3, images_aug_4,
-                             images_aug_5, images_aug_6, images_aug_7, images_aug_8), axis = 0)
-
-keypoints_aug = np.concatenate((keypoints_aug_1, keypoints_aug_2, 
-                                keypoints_aug_3, keypoints_aug_4,
-                                keypoints_aug_5, keypoints_aug_6, 
-                                keypoints_aug_7, keypoints_aug_8), axis = 0)
-
-
-images_aug = np.concatenate((images_aug_, images_aug), axis = 0)
-
-keypoints_aug = np.concatenate((keypoints_aug_, keypoints_aug), axis = 0)
-
-
-images_aug = images_aug.reshape((images_aug.shape[0], images_aug.shape[1], images_aug.shape[2]))
-
-keypoints_aug = keypoints_aug.reshape((keypoints_aug.shape[0], 6))
-
-
-
-images = np.concatenate((X, images_aug), axis = 0)
-
-points = np.concatenate((y, keypoints_aug), axis = 0)
-
-
-
-
-#img = draw_troughs(images[2332], points[2332])
-#
-#
-#cv2.imshow("flip_lr", img)
-#
-#while True:
-#    key = cv2.waitKey(1)
-#    if(key == 27):
-#        cv2.destroyAllWindows()
-#        break
-
-
+##########################  Shuffle Data Funtion  #############################
+###############################################################################
 
 def shuffleData(X,y):
     randomize = np.arange(len(X))
@@ -150,69 +49,117 @@ def shuffleData(X,y):
     y_shuffled = y[randomize]
     return X_shuffled,y_shuffled
 
+#########################  Draw Troughs on Images  ############################
+###############################################################################
 
-images, points = shuffleData(images,points)
+def draw_troughs(img, points):
+    
+    points = points.reshape((2, 2))
+    
+    for point in points:   
+        point = np.array(point).astype(int)
+        cv2.circle(img, (point[0], 
+                   point[1]), 
+                   5, (255, 255, 0), -1)
 
+    return img
 
+###############################  Main Code  ###################################
+###############################################################################
 
+keypoints = y_train.reshape((y_train.shape[0], 2, 2))
+# Array to list for giving input to the iaa.Affine function
+points = []
+for point in keypoints:
+    points.append(point)
+keypoints = points
 
+X_train_aug_names = []
+X_train_aug_bmp = []
+X_train_aug_gray = []
+X_train_aug_accu = []
+y_train_aug = []
 
-new_datafile =  "./Troughs_Model/model_AccuEdges/6/data_with_aug.npz"
+total_sample = len(X_train_bmp)
+num_aug_type = 8
+sam_per_aug = int(len(X_train_bmp) / num_aug_type)
 
-np.savez(new_datafile,
-         X=images,
-         y=points,
-         X_test = X_test,
-         X_test_gray = X_test_gray,
-         y_test = y_test,
-         test_names = test_names)
+portion_count = 0
+img_count = 0
+for rotate_angle in [-80, -60, -50, -30, -80, -60, -50, -30]:
+    # Take portion of samples for augmentation
+    images_bmp = X_train_bmp[(portion_count * sam_per_aug) : ((portion_count+1) * sam_per_aug)]
+    points = keypoints[(portion_count * sam_per_aug) : ((portion_count+1) * sam_per_aug)]
+    
+    # Take samples of that portion for augmentation
+    for sample in range(0, len(images_bmp)):
+        image = images_bmp[sample]
+        image = image.reshape((1, image.shape[0], image.shape[1], image.shape[2]))
+        point = []
+        point.append(points[sample])
+        
+        # Augmentation_1 (Rotation)
+        X_aug , y_aug = iaa.Affine(rotate = rotate_angle)(images = image, 
+                                                   keypoints = point)
+        # Again Reshaping to before format
+        X_aug = X_aug.reshape((image.shape[1], image.shape[2], image.shape[3]))
+        y_aug = np.array(y_aug).reshape((2, 2))
+        # Append samples after augmentation
+        X_train_aug_bmp.append(X_aug)
+        X_train_aug_gray.append(cv2.cvtColor(X_aug, cv2.COLOR_BGR2GRAY))
+        X_train_aug_accu.append(get_accumEdged(X_aug))
+        y_train_aug.append(y_aug)
+    
+        # Save the augmented pictures to the exact folder
+        name = X_train_names[img_count].replace(".bmp", "")
+        X_train_aug_names.append(name)
+        cv2.imwrite(Aug_train_data_folder + name + "_" + str(img_count) +
+                    "_rot_" + str(rotate_angle) + ".bmp", X_aug)
+        
+        # Draw Troughs and Save Image
+        X_aug = draw_troughs(X_aug, y_aug)
+        cv2.imwrite(Aug_data_with_points_folder + name + "_" + str(img_count) +
+                    "_rot_" + str(rotate_angle) + ".bmp", X_aug)
+        
+        # Augmentation_2 (Fliplr + Rotation)
+        images_lr , keypoints_lr = iaa.Fliplr(1.0)(images = image, 
+                                             keypoints = point)
+        X_aug , y_aug = iaa.Affine(rotate = rotate_angle)(images = image, 
+                                                   keypoints = point)
+        # Again Reshaping to before format
+        X_aug = X_aug.reshape((image.shape[1], image.shape[2], image.shape[3]))
+        y_aug = np.array(y_aug).reshape((2, 2))
+        # Append samples after augmentation
+        X_train_aug_bmp.append(X_aug)
+        X_train_aug_gray.append(cv2.cvtColor(X_aug, cv2.COLOR_BGR2GRAY))
+        X_train_aug_accu.append(get_accumEdged(X_aug))
+        y_train_aug.append(y_aug)
+    
+        # Save the augmented pictures to the exact folder
+        name = X_train_names[img_count].replace(".bmp", "")
+        X_train_aug_names.append(name)
+        cv2.imwrite(Aug_train_data_folder + name + "_" + str(img_count) +
+                    "_flrot_" + str(rotate_angle) + ".bmp", X_aug)
+        
+        # Draw Troughs and Save Image
+        X_aug = draw_troughs(X_aug, y_aug)
+        cv2.imwrite(Aug_data_with_points_folder + name + "_" + str(img_count) +
+                    "_flrot_" + str(rotate_angle) + ".bmp", X_aug)
+        
+        img_count += 1
+    
+    
+    portion_count += 1
 
+X_train_aug_bmp = np.array(X_train_aug_bmp)
+X_train_aug_gray = np.array(X_train_aug_gray)
+X_train_aug_accu = np.array(X_train_aug_accu)
+y_train_aug = np.array(y_train_aug)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+# Save the Augmented Data to a .npz file
+np.savez(data_folder + "Augmented_Train_data.npz",
+         X_train_aug_names = X_train_aug_names,
+         X_train_aug_bmp = X_train_aug_bmp,
+         X_train_aug_gray = X_train_aug_gray,
+         X_train_aug_accu = X_train_aug_accu,
+         y_train_aug = y_train_aug)
