@@ -2,10 +2,6 @@
 ###############################################################################
 
 import numpy as np
-import cv2
-import os
-import math
-import imgaug.augmenters as iaa
 
 ##############################  Import Data  ##################################
 ###############################################################################
@@ -20,31 +16,48 @@ data_folder = "./Data/"
 extraction_folder = "./Extracted/"
 train_data_folder = "./Data/Train_Data/"
 test_data_folder = "./Data/Test_Data/"
+Aug_train_data_folder = './Data/Augmented_Train_data/'
 
 # Output Data Folders
 weightFile = train_Output_data + 'WeightFile_best.hdf5'
 prediction_fldr = train_Output_data + 'Prediction/'
 cropped_fldr = train_Output_data + 'Cropped/'
 
-
+# Import Main Data
 data = np.load(data_folder + 'train_test_data_without_augmetation.npz') 
-
+X_train_names = data['X_train_names'].astype(str)
 X_train_bmp = data['X_train_bmp']
 X_train_gray = data['X_train_gray']
 X_train = data['X_train']
 y_train = data['y_train']
+X_test_names = data['X_test_names'].astype(str)
 X_test_bmp = data['X_test_bmp']
 X_test_gray = data['X_test_gray']
 X_test = data['X_test']
 y_test = data['y_test']
 
+# Import Augmented Data
+data = np.load(data_folder + "Augmented_Train_data.npz") 
+X_train_aug_names = data['X_train_aug_names'].astype(str)
+X_train_aug_bmp = data['X_train_aug_bmp']
+X_train_aug_gray = data['X_train_aug_gray']
+X_train_aug_accu = data['X_train_aug_accu']
+y_train_aug = data['y_train_aug'].reshape((X_train_aug_accu.shape[0], 4))
+
+# Concatenate main data and augmented data
+X_names = np.concatenate((X_train_names, X_train_aug_names), axis = 0)
+X_bmp = np.concatenate((X_train_bmp, X_train_aug_bmp), axis = 0)
+X_gray = np.concatenate((X_train_gray, X_train_aug_gray), axis = 0)
+X_accu = np.concatenate((X_train, X_train_aug_accu), axis = 0)
+y = np.concatenate((y_train, y_train_aug), axis = 0)
+
 # Normalizing Input
-X_train = X_train / 255
+X_accu = X_accu / 255
 
 # Train Test Splitting
 random_seed = 0
 from sklearn.model_selection import train_test_split
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size = 0.3, 
+X_train, X_val, y_train, y_val = train_test_split(X_accu, y, test_size = 0.3, 
                                                   random_state=random_seed)
 
 # Reshape the train and validation set for making enterable to the model
@@ -52,7 +65,6 @@ X_train = X_train.reshape((X_train.shape[0], 240, 300, 1))
 X_val = X_val.reshape((X_val.shape[0], 240, 300, 1))
 
 num_pred_value = y_train.shape[1]
-
 
 ########################## Import libraries for Model  ########################
 ###############################################################################
@@ -71,7 +83,6 @@ from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 import keras.backend as K
 K.set_image_data_format('channels_last')
 K.set_learning_phase(1)
-
 
 #################### Identity Block library for ResNet Model  #################
 ###############################################################################
@@ -248,7 +259,6 @@ def ResNet50(input_shape = (64, 64, 3), classes = 6):
 model = ResNet50(input_shape = (240,300, 1), classes = num_pred_value)
 print(model.summary())
 plot_model(model, to_file='Model Layer Summary.png')
-
 
 # Compiling the Model
 optimizer = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.0)

@@ -12,12 +12,7 @@ from keras import backend as K
 K.set_image_data_format('channels_last')
 
 # Input Data Folders
-train_Output_data = "./Model_Output/"
-dataset_folder = "./Data/Dataset/"
 data_folder = "./Data/"
-extraction_folder = "./Extracted/"
-train_data_folder = "./Data/Train_Data/"
-test_data_folder = "./Data/Test_Data/"
 Aug_train_data_folder = './Data/Augmented_Train_data/'
 Aug_data_with_points_folder = './Data/Augmented_Train_data/Augmented_train_data_with_points/'
 
