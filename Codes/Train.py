@@ -27,12 +27,14 @@ prediction_fldr = train_Output_data + 'Prediction/'
 cropped_fldr = train_Output_data + 'Cropped/'
 
 
-data = np.load(data_folder + 'train_test_data.npz') 
+data = np.load(data_folder + 'train_test_data_without_augmetation.npz') 
 
 X_train_bmp = data['X_train_bmp']
+X_train_gray = data['X_train_gray']
 X_train = data['X_train']
 y_train = data['y_train']
 X_test_bmp = data['X_test_bmp']
+X_test_gray = data['X_test_gray']
 X_test = data['X_test']
 y_test = data['y_test']
 
