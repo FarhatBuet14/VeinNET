@@ -20,6 +20,7 @@ Aug_train_data_folder = './Data/Augmented_Train_data/'
 
 # Output Data Folders
 weightFile = train_Output_data + 'WeightFile_best.hdf5'
+saved_model_File = train_Output_data + 'Saved_Model.h5'
 prediction_fldr = train_Output_data + 'Prediction/'
 cropped_fldr = train_Output_data + 'Cropped/'
 
@@ -271,34 +272,18 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_loss',
                                             verbose=1, 
                                             factor=0.25, 
                                             min_lr=0.00001)
-
 wigth  = ModelCheckpoint(weightFile, monitor = 'val_loss' )
 callbacks = [wigth, learning_rate_reduction]
 
 epochs = 1
+batch_size = 32
 verbose = 1
-
 history = model.fit(X_train, y_train,
                     validation_data = [X_val , y_val],
-                    epochs = epochs, verbose = verbose,
-                    callbacks= callbacks)
+                    epochs = epochs, batch_size = batch_size,
+                    verbose = verbose, callbacks= callbacks)
+model.save(saved_model_File)
 
-
-
-
-#model.save('Saved_Model.h5')
-#
-#
-#X_test = dataset['X_test']
-#X_test_gray = dataset['X_test_gray']
-#y_test = dataset['y_test']
-#test_names = dataset['test_names']
-#
-#X_test = X_test.reshape((X_test.shape[0], 240, 300, 1))
-#X_test_gray = X_test_gray.reshape((X_test.shape[0], 240, 300, 1))
-#
-#
-#
 #model.load_weights(weightFile)
 #
 #
