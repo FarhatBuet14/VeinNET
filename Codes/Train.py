@@ -11,18 +11,12 @@ K.set_image_data_format('channels_last')
 
 # Input Data Folders
 train_Output_data = "./Model_Output/"
-dataset_folder = "./Data/Dataset/"
 data_folder = "./Data/"
-extraction_folder = "./Extracted/"
-train_data_folder = "./Data/Train_Data/"
-test_data_folder = "./Data/Test_Data/"
 Aug_train_data_folder = './Data/Augmented_Train_data/'
 
 # Output Data Folders
 weightFile = train_Output_data + 'WeightFile_best.hdf5'
 saved_model_File = train_Output_data + 'Saved_Model.h5'
-prediction_fldr = train_Output_data + 'Prediction/'
-cropped_fldr = train_Output_data + 'Cropped/'
 
 # Import Main Data
 data = np.load(data_folder + 'train_test_data_without_augmetation.npz') 
@@ -31,11 +25,6 @@ X_train_bmp = data['X_train_bmp']
 X_train_gray = data['X_train_gray']
 X_train = data['X_train']
 y_train = data['y_train']
-X_test_names = data['X_test_names'].astype(str)
-X_test_bmp = data['X_test_bmp']
-X_test_gray = data['X_test_gray']
-X_test = data['X_test']
-y_test = data['y_test']
 
 # Import Augmented Data
 data = np.load(data_folder + "Augmented_Train_data.npz") 
@@ -283,202 +272,3 @@ history = model.fit(X_train, y_train,
                     epochs = epochs, batch_size = batch_size,
                     verbose = verbose, callbacks= callbacks)
 model.save(saved_model_File)
-
-#model.load_weights(weightFile)
-#
-#
-#
-#X_test_input = X_test / 255
-#y_pred = model.predict(X_test_input)
-#
-#
-#y_pred = y_pred.reshape((y_pred.shape[0], 3, 2))
-#
-##X_test_gray = X_test_gray * 255
-#
-#def draw_troughs(img, points):
-#    
-#    points = points.reshape((2, 2))
-#    
-#    for point in points:   
-#        point = np.array(point).astype(int)
-#        cv2.circle(img, (point[0], 
-#                   point[1]), 
-#                   5, (0, 0, 0), -1)
-#
-#    return img
-#
-#
-#def predicted_result(X_test_gray, prediction_fldr, cropped_fldr, y_pred, test_names, 
-#                     height = 90, width = 50, th = 20):     
-#    count = 0
-#    for sample in range(0, len(y_pred)):
-#        
-#        image = X_test_gray[sample, :, :, 0].reshape(
-#                (1, X_test_gray.shape[1], X_test_gray.shape[2], 1)).astype(np.uint8)
-#        
-#        
-#        if image is not None:
-#            points = y_pred[sample, :, :]   
-#            points = points.astype(int)
-#            dists = np.zeros((3, 1))
-#            dists[0] = math.hypot(points[0, 0] - points[1, 0],        ## (0-1)
-#                              points[0, 1] - points[1, 1])   
-#            dists[1] = math.hypot(points[0, 0] - points[2, 0],        ## (0-2) 
-#                              points[0, 1] - points[2, 1]) 
-#            dists[2] = math.hypot(points[2, 0] - points[1, 0],        ## (1-2) 
-#                              points[2, 1] - points[1, 1]) 
-#            
-#            max_dist_arg = np.argmax(dists)
-#            
-#            points = points.tolist()
-#            if(max_dist_arg == 0): del points[2]
-#            if(max_dist_arg == 1): del points[1]
-#            if(max_dist_arg == 2): del points[0]
-#            points = np.array(points)
-#            
-#            if(points[0, 0] > points[1, 0]):
-#                temp = []
-#                temp.append(points[1])
-#                temp.append(points[0])
-#                points = np.array(temp)
-#            
-#            top_left = points[0]
-#            top_right = points[1]
-#            
-#            points = points.reshape((1, 2, 2))
-#            
-#            angle  = np.arctan((top_left[1] - top_right[1])/(top_left[0] - top_right[0]))
-#            
-#            angle = (180/np.pi) * angle
-#            
-#            image_rotated , keypoints_rotated = iaa.Affine(rotate=-angle)(images=image, 
-#                                          keypoints=points)
-#            
-#            
-#            image_rotated = image_rotated.reshape((240, 300))
-#            keypoints_rotated = keypoints_rotated.reshape((2, 2))
-#            
-#            top_left_ = keypoints_rotated[0]
-#            
-##            bottom_right = np.zeros((2, )).astype(int)
-##            bottom_right[0] = top_left_[0] + int(width/2)
-##            bottom_right[1] = top_left_[1] + int(height/2)
-#            
-#            top_left_ = tuple(top_left_.reshape(1, -1)[0])
-##            bottom_right = tuple(bottom_right.reshape(1, -1)[0])
-#            
-#            center = np.zeros((2, )).astype(int)
-#            center[0] = top_left_[0] + int(width/2)  - th
-#            center[1] = top_left_[1] + int(height/2)
-#            center = tuple(center.reshape(1, -1)[0])
-#            
-#            crop = cv2.getRectSubPix(image_rotated, (width, height), center) 
-#            
-#            filenames = os.listdir(cropped_fldr)
-#            
-#            if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
-#            
-#            cv2.imwrite(cropped_fldr + test_names[sample], crop)
-#            
-#            tl = np.zeros((2, )).astype(int)
-#            tl[0] = center[0] - int(width/2)  # 25
-#            tl[1] = center[1] - int(height/2)
-#            tl = tuple(tl.reshape(1, -1)[0])
-#            
-#            br = np.zeros((2, )).astype(int)
-#            br[0] = center[0] + int(width/2)  # 25
-#            br[1] = center[1] + int(height/2)
-#            br = tuple(br.reshape(1, -1)[0])
-#            
-#            
-#            image_rotated = draw_troughs(image_rotated, keypoints_rotated)
-#            image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
-#            
-#            filenames = os.listdir(prediction_fldr)
-#            
-#            if(test_names[sample] in filenames): print(test_names[sample] + " is overwritten")
-#            
-#            cv2.imwrite(prediction_fldr + test_names[sample], image_rotated)
-#    
-#            count += 1
-#            
-#        else:
-#            print(test_names[sample] + " is found None")
-#    
-#    return image_rotated, keypoints_rotated
-#    
-#
-#img, pp = predicted_result(X_test_gray = X_test_gray, height = 90, width = 70, th = 10,
-#                           prediction_fldr = prediction_fldr, cropped_fldr = cropped_fldr,
-#                           y_pred = y_pred, test_names = test_names)    
-#
-#
-#
-#y_pred = y_pred.reshape((y_pred.shape[0], 6))
-#
-#err = abs(y_test - y_pred)
-#
-#err = np.sum(err, axis = 1)/6
-#
-#err_avg = sum(err)/len(err)
-#
-#
-#plt.figure(figsize = (20, 10))
-#plt.plot(err)
-#plt.show()
-#
-#
-#
-#pred_datafile = "./Troughs_Model/model_AccuEdges/9/pred_data_9.npz"
-#np.savez(pred_datafile,
-#         y_pred = y_pred,
-#         err = err,
-#         err_avg = err_avg,
-#         test_names = test_names)
-#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

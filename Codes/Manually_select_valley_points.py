@@ -4,6 +4,9 @@
 import cv2
 import numpy as np
 
+################################  Main Code  ##################################
+###############################################################################
+
 data_folder = "./Data/Dataset/"
 extraction_folder = "./Extracted/"
 
@@ -50,4 +53,3 @@ np.savez(extraction_folder + 'manual_selsction_data.npz',
          images = images,
          manual_points = points,
          names = names)
-

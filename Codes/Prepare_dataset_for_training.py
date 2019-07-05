@@ -43,14 +43,11 @@ def find_contour_needed(accumEdged, cnt_length_thresh = 100):
 
     return cnts_nedded, Length
 
-
 #########################  Concatenate all contours  ##########################
 ###############################################################################
 
 def cnt_concat(cnts_nedded):
-
-    all_cnts = np.zeros((1, 1, 2))
-    
+    all_cnts = np.zeros((1, 1, 2))   
     for cnt in cnts_nedded:
         all_cnts = np.append(all_cnts, cnt, axis = 0)
     
@@ -59,12 +56,10 @@ def cnt_concat(cnts_nedded):
     
     return all_cnts
 
-
 ###############  Apply Algorithm for finding valley points  ###################
 ###############################################################################
 
-def get_trough_points(image, all_cnts): # 
-    
+def get_trough_points(image, all_cnts): #   
     cnt_x = all_cnts[:, 0]
     cnt_y = all_cnts[:, 1]
   
@@ -76,10 +71,7 @@ def get_trough_points(image, all_cnts): #
             troughs.append([cnt_x[i], cnt_y[i]])
     
     troughs = np.array(troughs)
-
-
     troughs = np.array(sorted(troughs, key=itemgetter(0)))
-    
     
     # make the closer points to one point 
     not_okay = True  
@@ -88,10 +80,8 @@ def get_trough_points(image, all_cnts): #
         dists = np.zeros(( (len(troughs) - 1), 1))
         for i in range(0, len(troughs)-1):
             dists[i, 0] = math.hypot(troughs[i, 0] - troughs[i+1, 0], 
-                              troughs[i, 1] - troughs[i+1, 1])   
-        
-        not_okay = True in (dists < 10)
-        
+                              troughs[i, 1] - troughs[i+1, 1])           
+        not_okay = True in (dists < 10)        
         if(not_okay):
             
             troughs_final = []
@@ -105,25 +95,19 @@ def get_trough_points(image, all_cnts): #
                     if(merge == False):           
                         troughs_final.append(troughs[i, :])
                     else:
-                        merge = False
-            
-            troughs = np.array(troughs_final)
+                        merge = False           
+            troughs = np.array(troughs_final)    
     
-    # remove other points except troughs
-    
+    # remove other points except troughs    
     pointed = [[0,0]]
     for i in range(0, len(troughs)): 
-        for j in range(0, len(troughs)):
-            
-            if( i != j ):
-                
+        for j in range(0, len(troughs)):           
+            if( i != j ):               
                 dist = math.hypot(troughs[i, 0] - troughs[j, 0], 
-                                        troughs[i, 1] - troughs[j, 1])
-                
+                                        troughs[i, 1] - troughs[j, 1])                
                 if((dist > 20) & (dist < 40)):
                     pointed.append(troughs[i, :])
-                    break
-    
+                    break    
     pointed = np.array(pointed)
     troughs = pointed[1:, :]
 
@@ -136,17 +120,13 @@ def get_trough_points(image, all_cnts): #
     
     return image, troughs
 
-
 ###################  Get exact two points from troughs  #######################
 ###############################################################################
 
-def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
-    
+def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):   
     if(len(points) != 3): # Error if the troughs can not be calculated through algorithm
-        err = image_name
-    
-    else:
-        
+        err = image_name    
+    else:        
         points = points.astype(int)
         dists = np.zeros((3, 1))
         dists[0] = math.hypot(points[0, 0] - points[1, 0],        ## (0-1)
@@ -156,8 +136,7 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
         dists[2] = math.hypot(points[2, 0] - points[1, 0],        ## (1-2) 
                           points[2, 1] - points[1, 1]) 
         
-        max_dist_arg = np.argmax(dists)
-        
+        max_dist_arg = np.argmax(dists)        
         points = points.tolist()
         if(max_dist_arg == 0): del points[2]
         if(max_dist_arg == 1): del points[1]
@@ -170,41 +149,32 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
                        point[1]), 
                        5, (0, 255, 0), -1)
         err = None
-    
-    
+        
     return image, points, err
-
 
 #############################  Draw Troughs  ##################################
 ###############################################################################
 
-def draw_troughs(img, points):
-    
-    points = points.reshape((2, 2))
-    
+def draw_troughs(img, points):    
+    points = points.reshape((2, 2))   
     for point in points:   
         point = np.array(point).astype(int)
         cv2.circle(img, (point[0], 
                    point[1]), 
                    5, (0, 0, 0), -1)
-
     return img
 
 
 ###########################  Find Valley Points  ##############################
 ###############################################################################
 
-def data_2_points(names, data_folder, cnt_length_thresh = 20):
-    
+def data_2_points(names, data_folder, cnt_length_thresh = 20):    
     error_files = [] # can not be calculated through algorithm
     algo_extracted_files = [] #  calculated through algorithm
-    final_points = []
-    
-    for image_name in names:
-        
+    final_points = []    
+    for image_name in names:        
         image = cv2.imread(data_folder + image_name)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)        
         accumEdged = get_accumEdged(gray)
         
         [cnts_nedded, length_cnt] = find_contour_needed(accumEdged, cnt_length_thresh)
@@ -212,22 +182,18 @@ def data_2_points(names, data_folder, cnt_length_thresh = 20):
         _, troughs = np.array(get_trough_points(gray.copy(), all_cnts))
         
         _, points, err = get_two_points(gray.copy(), image_name, troughs, 
-                                                         height = 90, width = 50, th = 20)
-        
+                                                         height = 90, width = 50, th = 20)        
         if(err != None): #if the troughs can not be calculated through algorithm
-            error_files.append(err)
-            
+            error_files.append(err)            
         else: 
             algo_extracted_files.append(image_name)
             final_points.append(points)
-
                 
     error_files = np.array(error_files)
     algo_extracted_files = np.array(algo_extracted_files)
     final_points = np.array(final_points)
 
     return algo_extracted_files, error_files, final_points
-
 
 ###############################  Main Code  ###################################
 ###############################################################################

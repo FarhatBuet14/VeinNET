@@ -12,7 +12,6 @@ import imgaug.augmenters as iaa
 from PIL import Image
 import shutil
 
-
 #########################  Find Accumulated Image  ############################
 ###############################################################################
 
@@ -29,10 +28,8 @@ def get_accumEdged(image):
 ####################  Find Conrtoue from Accumulated Image  ###################
 ###############################################################################
  
-def find_contour_needed(accumEdged, cnt_length_thresh = 100):
-    
-    contour_image = accumEdged
-    
+def find_contour_needed(accumEdged, cnt_length_thresh = 100):   
+    contour_image = accumEdged    
     cnts = cv2.findContours(contour_image, cv2.RETR_EXTERNAL,
     	cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
@@ -53,9 +50,7 @@ def find_contour_needed(accumEdged, cnt_length_thresh = 100):
 ###############################################################################
 
 def cnt_concat(cnts_nedded):
-
-    all_cnts = np.zeros((1, 1, 2))
-    
+    all_cnts = np.zeros((1, 1, 2))    
     for cnt in cnts_nedded:
         all_cnts = np.append(all_cnts, cnt, axis = 0)
     
@@ -81,10 +76,7 @@ def get_trough_points(image, all_cnts): #
             troughs.append([cnt_x[i], cnt_y[i]])
     
     troughs = np.array(troughs)
-
-
     troughs = np.array(sorted(troughs, key=itemgetter(0)))
-    
     
     # make the closer points to one point 
     not_okay = True  
@@ -94,9 +86,7 @@ def get_trough_points(image, all_cnts): #
         for i in range(0, len(troughs)-1):
             dists[i, 0] = math.hypot(troughs[i, 0] - troughs[i+1, 0], 
                               troughs[i, 1] - troughs[i+1, 1])   
-        
         not_okay = True in (dists < 10)
-        
         if(not_okay):
             
             troughs_final = []
@@ -111,24 +101,18 @@ def get_trough_points(image, all_cnts): #
                         troughs_final.append(troughs[i, :])
                     else:
                         merge = False
-            
             troughs = np.array(troughs_final)
     
     # remove other points except troughs
-    
     pointed = [[0,0]]
     for i in range(0, len(troughs)): 
-        for j in range(0, len(troughs)):
-            
-            if( i != j ):
-                
+        for j in range(0, len(troughs)): 
+            if( i != j ): 
                 dist = math.hypot(troughs[i, 0] - troughs[j, 0], 
                                         troughs[i, 1] - troughs[j, 1])
-                
                 if((dist > 20) & (dist < 40)):
                     pointed.append(troughs[i, :])
                     break
-    
     pointed = np.array(pointed)
     troughs = pointed[1:, :]
 
@@ -141,7 +125,6 @@ def get_trough_points(image, all_cnts): #
     
     return image, troughs
 
-
 ###################  Get exact two points from troughs  #######################
 ###############################################################################
 
@@ -149,9 +132,7 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
     
     if(len(points) != 3): # Error if the troughs can not be calculated through algorithm
         err = image_name
-    
     else:
-        
         points = points.astype(int)
         dists = np.zeros((3, 1))
         dists[0] = math.hypot(points[0, 0] - points[1, 0],        ## (0-1)
@@ -162,7 +143,6 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
                           points[2, 1] - points[1, 1]) 
         
         max_dist_arg = np.argmax(dists)
-        
         points = points.tolist()
         if(max_dist_arg == 0): del points[2]
         if(max_dist_arg == 1): del points[1]
@@ -175,10 +155,8 @@ def get_two_points(image, image_name, points, height = 90, width = 50, th = 20):
                        point[1]), 
                        5, (0, 255, 0), -1)
         err = None
-    
-    
+        
     return image, points, err
-
 
 #############################  Draw Troughs  ##################################
 ###############################################################################
@@ -194,7 +172,6 @@ def draw_troughs(img, points):
                    5, (0, 0, 0), -1)
 
     return img
-
 
 ###########################  Find Valley Points  ##############################
 ###############################################################################
@@ -228,18 +205,15 @@ def data_2_points(data_folder, troughs_folder, cnt_length_thresh = 20):
                                                              height = 90, width = 50, th = 20)
             
             if(err != None): #if the troughs can not be calculated through algorithm
-                error_files.append(err)
-                
+                error_files.append(err)                
             else:
-                
                 algo_extracted_files.append(image_name)
                 final_points.append(points)
                 
                 # Concatenate Accumilated + Cnt + Trough Images 
                 all_img = cv2.hconcat((accumEdged, cnt_image))
                 all_img = cv2.hconcat((all_img, trough_image))
-                all_img = cv2.hconcat((all_img, final_trough_image))
-                
+                all_img = cv2.hconcat((all_img, final_trough_image))                
                 cv2.imwrite(troughs_folder + image_name, all_img)
                 
     error_files = np.array(error_files)
@@ -247,7 +221,6 @@ def data_2_points(data_folder, troughs_folder, cnt_length_thresh = 20):
     final_points = np.array(final_points)
 
     return algo_extracted_files, error_files, final_points
-
 
 #####################  Calculate loss from two points  ########################
 ###############################################################################
@@ -317,8 +290,6 @@ def cal_loss_from_points(point_extracted_images, points,
     vein_loss = np.array(vein_loss)
     return vein_loss
 
-
-
 #####################  Distribute Pos & Neg Vein Images #######################
 ###############################################################################
 
@@ -334,9 +305,6 @@ def distr_pos_neg_vein(vein_folder, vein_names, vein_loss,
 
     return pos_vein, neg_vein
 
-
-
-
 ###############################################################################
 ###############################################################################
 ###############################################################################
@@ -350,12 +318,9 @@ bounding_box_folder = "./Extracted/Bounding_box/"
 pos_vein_folder = "./Extracted/Vein_Images/pos_vein_img/"
 neg_vein_folder = "./Extracted/Vein_Images/neg_vein_img"
 
-
-
 algo_extracted_files, error_files, final_points = data_2_points(data_folder = data_folder,
                                                                 troughs_folder = troughs_folder,
                                                                 cnt_length_thresh = 20)
-
 
 vein_loss = cal_loss_from_points(point_extracted_images = algo_extracted_files, 
                                  points = final_points,

@@ -143,7 +143,6 @@ for rotate_angle in [-80, -60, -50, -30, -80, -60, -50, -30]:
         
         img_count += 1
     
-    
     portion_count += 1
 
 X_train_aug_bmp = np.array(X_train_aug_bmp)

@@ -1,7 +1,7 @@
 *.bmp
+*.npz
+*.h5
 */Before/*
 Before/*
-*.npz
 */Model_Output/*
 Model_Output/*
-*.h5
