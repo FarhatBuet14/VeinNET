@@ -6,9 +6,6 @@ import numpy as np
 ##############################  Import Data  ##################################
 ###############################################################################
 
-from keras import backend as K
-K.set_image_data_format('channels_last')
-
 # Input Data Folders
 train_Output_data = "./Model_Output/"
 data_folder = "./Data/"
@@ -60,6 +57,7 @@ num_pred_value = y_train.shape[1]
 ###############################################################################
 
 import numpy as np
+import keras
 from keras.layers import Input, Add, Dense, Activation, ZeroPadding2D
 from keras.layers import BatchNormalization, Flatten, Conv2D
 from keras.layers import AveragePooling2D, MaxPooling2D, Dropout
@@ -69,10 +67,8 @@ from keras.utils import plot_model
 from keras.optimizers import RMSprop
 from keras.callbacks import ReduceLROnPlateau, ModelCheckpoint
 
-
 import keras.backend as K
 K.set_image_data_format('channels_last')
-K.set_learning_phase(1)
 
 #################### Identity Block library for ResNet Model  #################
 ###############################################################################
@@ -194,7 +190,7 @@ def ResNet50(input_shape = (64, 64, 3), classes = 6):
     """
     
     # Define the input as a tensor with shape input_shape
-    X_input = Input(input_shape)
+    X_input = Input(input_shape, name = 'input')
 
     # Zero-Padding
     X = ZeroPadding2D((3, 3))(X_input)
@@ -242,8 +238,7 @@ def ResNet50(input_shape = (64, 64, 3), classes = 6):
 
     return model
 
-
-#######################  Create Model and Compilation   #######################
+#######################  Create Model and Compilation #########################
 ###############################################################################
 
 model = ResNet50(input_shape = (240,300, 1), classes = num_pred_value)
@@ -252,8 +247,7 @@ plot_model(model, to_file='Model Layer Summary.png')
 
 # Compiling the Model
 optimizer = RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.0)
-model.compile(loss='mae', optimizer=optimizer, 
-              metrics=['mse'])
+model.compile(loss='mae', optimizer=optimizer, metrics=['mse'])
 
 # Defining the Checkpoints
 learning_rate_reduction = ReduceLROnPlateau(monitor='val_loss', 
@@ -261,14 +255,15 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_loss',
                                             verbose=1, 
                                             factor=0.25, 
                                             min_lr=0.00001)
-wigth  = ModelCheckpoint(weightFile, monitor = 'val_loss' )
-callbacks = [wigth, learning_rate_reduction]
+weights  = ModelCheckpoint(weightFile, monitor = 'val_loss' )
+callbacks = [weights, learning_rate_reduction]
 
-epochs = 1
-batch_size = 32
+epochs = 2
+batch_size = 8
 verbose = 1
 history = model.fit(X_train, y_train,
                     validation_data = [X_val , y_val],
                     epochs = epochs, batch_size = batch_size,
                     verbose = verbose, callbacks= callbacks)
+
 model.save(saved_model_File)

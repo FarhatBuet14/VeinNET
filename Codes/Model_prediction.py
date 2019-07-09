@@ -145,7 +145,6 @@ from keras.models import load_model
 
 import keras.backend as K
 K.set_image_data_format('channels_last')
-K.set_learning_phase(1)
 
 ########################## Load Saved Model & Predict #########################
 ###############################################################################
@@ -163,7 +162,7 @@ score = model.evaluate(X_test, y_test, verbose=0)
 y_pred = model.predict(X_test)
 y_pred = y_pred.reshape((y_pred.shape[0], 2, 2))
 
-# Save Predicted Data
+# Calculate and Save Predicted Data
 vein_images, vein_loss = cal_loss_from_points(X_test_bmp = X_test_bmp, y_test = y_test,
                                               y_pred = y_pred, X_test_names = X_test_names,
                                               data_folder = data_folder, 

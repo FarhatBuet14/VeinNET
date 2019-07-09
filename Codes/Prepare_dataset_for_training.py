@@ -200,7 +200,7 @@ def data_2_points(names, data_folder, cnt_length_thresh = 20):
 
 data_folder = "./Data/Dataset/"
 extraction_folder = "./Extracted/"
-train_data_folder = "./Data/Train_Data/"
+train_data_folder = "./Data/Raw_Train_Data/"
 test_data_folder = "./Data/Test_Data/"
 
 data_algo = np.load(extraction_folder + 'algo_result.npz')
