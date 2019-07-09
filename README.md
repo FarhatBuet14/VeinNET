@@ -3,3 +3,7 @@ This project is to detect the dorsal vein using an infrared illuminator and then
 
 ### Video Link - 
 https://youtu.be/0xPcVjBJbuc
+
+Description - 
+
+![vein-01.jpg](FarhatBuet14.github.com/Human-Identification-through-Matching-Dorsal-Vein/Images/vein-01.jpg)
