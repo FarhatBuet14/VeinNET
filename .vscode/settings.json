@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "C:\\Users\\User\\Anaconda3\\envs\\work\\python.exe"
+    "python.pythonPath": "C:\\Users\\User\\Anaconda3\\envs\\work\\python.exe",
+    "workbench.editor.tabSizing": "shrink"
 }
