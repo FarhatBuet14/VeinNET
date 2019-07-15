@@ -24,8 +24,8 @@ def runTrain(nnArchitecture, gpu = False):
     
     #---- Path to the directory with images
     pathDirData = "./Data/Full X_train_data/"
-    pathFileTest = "./Data/Test_Data/"
-    
+    train_Output_data = "./Model_Output/"
+
     #---- Neural network parameters: type of the network, is it pre-trained 
     #---- on imagenet, number of classes
     nnInChanCount = 3
@@ -33,26 +33,29 @@ def runTrain(nnArchitecture, gpu = False):
     nnClassCount = 4
     
     #---- Training settings: batch size, maximum number of epochs
-    trBatchSize = 1
-    trMaxEpoch = 20
+    trBatchSize = 16
+    trMaxEpoch = 5
     checkpoint = None
-    
-    pathModel = 'm-' + timestampLaunch + '.pth.tar'
+    pathModel = train_Output_data + 'm-' + timestampLaunch + '.pth.tar'
+
+    #---- Training settings: Vein Loss
+    vein_loss = True
+    cropped_fldr = train_Output_data + 'Cropped/'
+    bounding_box_folder = train_Output_data + 'Prediction/'
     
     print ('Training NN architecture = ', nnArchitecture)
     vein = VeinNetTrainer(gpu)
     vein.training(pathDirData, nnArchitecture, nnIsTrained, 
                 nnInChanCount, nnClassCount, trBatchSize, 
-                trMaxEpoch, timestampLaunch, checkpoint)
-    # vein.test(pathFileTest, pathModel, nnArchitecture, 
-    #         nnInChanCount, nnClassCount, nnIsTrained, 
-    #         trBatchSize, timestampLaunch)
+                trMaxEpoch, timestampLaunch, checkpoint,
+                vein_loss, cropped_fldr, bounding_box_folder)
 
 ######################### RUN TESTING #########################
 
 def runTest(nnArchitecture, gpu = False):
 
     pathFileTest = "./Data/Test_Data/"
+    train_Output_data = "./Model_Output/"
     nnIsTrained = True
     
     nnInChanCount = 3
@@ -64,16 +67,21 @@ def runTest(nnArchitecture, gpu = False):
     timestampTime = time.strftime("%H%M%S")
     timestampDate = time.strftime("%d%m%Y")
     timestampLaunch = timestampDate + '-' + timestampTime
+
+    vein_loss = True
+    cropped_fldr = train_Output_data + 'Cropped/'
+    bounding_box_folder = train_Output_data + 'Prediction/'
     
     vein = VeinNetTrainer(gpu)
     vein.test(pathFileTest, pathModel, nnArchitecture, 
             nnInChanCount, nnClassCount, nnIsTrained, 
-            trBatchSize, timestampLaunch)
+            trBatchSize, timestampLaunch, vein_loss, 
+            cropped_fldr, bounding_box_folder)
 
 ######################### Main Function  #########################
 
-nnArchitecture = 'resnet18'
-runTest(nnArchitecture, gpu = True)
-#runTrain(nnArchitecture, gpu = True)
+nnArchitecture = 'resnet50'
+# runTest(nnArchitecture, gpu = True)
+runTrain(nnArchitecture, gpu = True)
 
 print("finished")
