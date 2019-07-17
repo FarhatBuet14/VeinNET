@@ -9,6 +9,7 @@ from os.path import join
 from PIL import Image
 import pandas as pd
 import matplotlib as plt
+import torch
 
 ########################## Import Model Class ########################
 
@@ -18,6 +19,7 @@ from VeinNetTrainer import VeinNetTrainer
 
 def runTrain(nnArchitecture, gpu = False):
     
+    torch.cuda.empty_cache()
     timestampTime = time.strftime("%H%M%S")
     timestampDate = time.strftime("%d%m%Y")
     timestampLaunch = timestampDate + '-' + timestampTime
@@ -33,22 +35,23 @@ def runTrain(nnArchitecture, gpu = False):
     nnClassCount = 4
     
     #---- Training settings: batch size, maximum number of epochs
-    trBatchSize = 16
-    trMaxEpoch = 5
-    checkpoint = None
-    pathModel = train_Output_data + 'm-' + timestampLaunch + '.pth.tar'
+    trBatchSize = 32
+    trMaxEpoch = 2
+    # checkpoint = None
+    pathModel = train_Output_data + 'm_' + timestampLaunch +  '.pth.tar'
 
     #---- Training settings: Vein Loss
     vein_loss = True
     cropped_fldr = train_Output_data + 'Cropped/'
     bounding_box_folder = train_Output_data + 'Prediction/'
-    
+    print('-' * 100)
     print ('Training NN architecture = ', nnArchitecture)
     vein = VeinNetTrainer(gpu)
-    vein.training(pathDirData, nnArchitecture, nnIsTrained, 
+    vein.training(pathDirData, pathModel, nnArchitecture, nnIsTrained, 
                 nnInChanCount, nnClassCount, trBatchSize, 
-                trMaxEpoch, timestampLaunch, checkpoint,
+                trMaxEpoch, timestampLaunch, None,
                 vein_loss, cropped_fldr, bounding_box_folder)
+    del vein
 
 ######################### RUN TESTING #########################
 
@@ -60,13 +63,13 @@ def runTest(nnArchitecture, gpu = False):
     
     nnInChanCount = 3
     nnClassCount = 4
-    trBatchSize = 16
+    trBatchSize = 64
     
     pathModel = './Model_Output/m-25012018-123527.pth.tar'
     
-    timestampTime = time.strftime("%H%M%S")
-    timestampDate = time.strftime("%d%m%Y")
-    timestampLaunch = timestampDate + '-' + timestampTime
+    # timestampTime = time.strftime("%H%M%S")
+    # timestampDate = time.strftime("%d%m%Y")
+    # timestampLaunch = timestampDate + '-' + timestampTime
 
     vein_loss = True
     cropped_fldr = train_Output_data + 'Cropped/'
@@ -75,11 +78,12 @@ def runTest(nnArchitecture, gpu = False):
     vein = VeinNetTrainer(gpu)
     vein.test(pathFileTest, pathModel, nnArchitecture, 
             nnInChanCount, nnClassCount, nnIsTrained, 
-            trBatchSize, timestampLaunch, vein_loss, 
+            trBatchSize, vein_loss, 
             cropped_fldr, bounding_box_folder)
 
 ######################### Main Function  #########################
 
+torch.cuda.empty_cache()
 nnArchitecture = 'resnet50'
 # runTest(nnArchitecture, gpu = True)
 runTrain(nnArchitecture, gpu = True)
