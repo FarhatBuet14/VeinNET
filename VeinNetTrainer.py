@@ -8,6 +8,7 @@ import cv2
 import math
 import imgaug.augmenters as iaa
 import re
+import imutils
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -58,24 +59,70 @@ class VeinNetTrainer():
     ##################################################################
 
     class SeedlingDataset(Dataset):
-        def __init__(self, labels, root_dir, subset=False, 
-                    transform = None, normalize=True):
+        def __init__(self, labels, root_dir, cnt_length_thresh = 400, 
+                    subset=False, transform = None, normalize=True):
             self.labels = labels
             self.root_dir = root_dir
             self.transform = transform
             self.normalize = normalize
+            self.cnt_length_thresh = cnt_length_thresh
         
         def get_processed(self, image):
+            
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            
+            # Preprocessed
+            image = cv2.ximgproc.guidedFilter(image, image, 13, 70)
+            image = np.array(image)
+            #-----Converting image to LAB Color model
+            lab= cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+            #-----Splitting the LAB image to different channels
+            l, a, b = cv2.split(lab)
+            #-----Applying CLAHE to L-channel
+            clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
+            cl = clahe.apply(l)
+            #-----Merge the CLAHE enhanced L-channel with the a and b channel
+            image = cv2.merge((cl,a,b))
+            #-----Converting image from LAB Color model to RGB model
+            image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
+            
+            # Find AccumulatedEdged
             accumEdged = np.zeros(image.shape[:2], dtype="uint8")
             for chan in cv2.split(image):
                 chan = cv2.medianBlur(chan, 3)
                 chan = cv2.Canny(chan, 50, 150)
                 accumEdged = cv2.bitwise_or(accumEdged, chan) 
+            # Find Contours
+            cnts = cv2.findContours(accumEdged, cv2.RETR_EXTERNAL,
+                                    cv2.CHAIN_APPROX_SIMPLE)
+            cnts = imutils.grab_contours(cnts)
+            cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
+
+            # Delete the short contours less than length_threshold
+            cnts_nedded = []
+            Length = []
+            for c in cnts:
+                if( cv2.arcLength(c, False) > self.cnt_length_thresh ):
+                    Length.append(cv2.arcLength(c, False))
+                    cnts_nedded.append(c)
+            all_cnts = np.zeros((1, 1, 2))    
+            for cnt in cnts_nedded:
+                all_cnts = np.append(all_cnts, cnt, axis = 0)
+            all_cnts = all_cnts[1:, :, :]
+            all_cnts = np.reshape(all_cnts, (all_cnts.shape[0], 2))
+            blank = np.zeros((240, 300, 3))
+            cnt_image = cv2.drawContours(blank,
+                            np.array(all_cnts).reshape((-1,1,2)).astype(np.int32),
+                            -1, (255,255,255), 2)
+            final_cnt_image = np.zeros((240, 300))
+            for chan in cv2.split(cnt_image):
+                final_cnt_image += chan
+            # Add the features to the Image Channels
             image = np.zeros((240, 300, 3), dtype="float32")
             image[:, :, 0] = gray
             image[:, :, 1] = accumEdged
-            image[:, :, 2] = accumEdged # Will add a precessed image
+            image[:, :, 2] = final_cnt_image
+            
             image = image/255
             return image
         
@@ -217,7 +264,8 @@ class VeinNetTrainer():
             true = np.count_nonzero(accu)
             false = (accu.shape[0] * accu.shape[1]) - true
             vein_loss = Variable(torch.tensor((false / (false + true))), requires_grad=True)
-            return vein_loss
+            
+            return vein_loss * 100
 
     ######################### Simple CNN Model #########################
     ####################################################################
@@ -253,11 +301,13 @@ class VeinNetTrainer():
     ###############################################################
     
     def epochTrain (self, model, dataLoader, optimizer, scheduler, trBatchSize,
-                    epochMax, classCount, loss_class, vein_loss = False,
+                    epochMax, classCount, loss_class, loss_weights, vein_loss = False,
                     cropped_fldr = None, bounding_box_folder = None):
         
         model.train()
+        w_mae, w_veinLoss = loss_weights
         loss = 0
+        loss_v = 0
         for batchID, (input, target) in enumerate (dataLoader):
             # torch.cuda.empty_cache()
             
@@ -269,32 +319,34 @@ class VeinNetTrainer():
 
             del varInput, varOutput
             
-            loss += loss_class.calculate(target, output)
+            loss += (loss_class.calculate(target, output) * w_mae)
             if(vein_loss):
                 vein_loss_class = self.Vein_loss_class(target, output, 
                                                         input, cropped_fldr, 
                                                         bounding_box_folder, id)
                 vein_loss_class.get_vein_img(save_vein_pic = True,
                                                         save_bb = True)
-                loss += vein_loss_class.cal_vein_loss()
+                loss_v += (vein_loss_class.cal_vein_loss() * w_veinLoss)
 
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
             
             del input, target, id, output, vein_loss_class
-        loss_mean = loss / trBatchSize
-        return loss_mean
+        loss = loss / trBatchSize
+        loss_v = loss_v / trBatchSize
+        return loss, loss_v
 
     ######################### Epoch Validation #########################
     ####################################################################
     
     def epochVal (self, model, dataLoader, optimizer, scheduler, trBatchSize,
-                    epochMax, classCount, loss_class,  vein_loss = False,
+                    epochMax, classCount, loss_class, loss_weights, vein_loss = False,
                     cropped_fldr = None, bounding_box_folder = None):
         
         model.eval ()
         loss = 0
+        loss_v = 0
         with torch.no_grad():
             for i, (input, target) in enumerate (dataLoader):
                 # torch.cuda.empty_cache()
@@ -313,11 +365,12 @@ class VeinNetTrainer():
                                                             bounding_box_folder, id)
                     vein_loss_class.get_vein_img(save_vein_pic = True,
                                                             save_bb = True)
-                    loss += vein_loss_class.cal_vein_loss()
+                    loss_v += vein_loss_class.cal_vein_loss()
 
                 del input, target, output, id, vein_loss_class
             loss = loss / trBatchSize
-        return loss
+            loss_v = loss_v / trBatchSize
+        return loss, loss_v
     
     ########################### Load Model ###########################
     ##################################################################
@@ -363,8 +416,8 @@ class VeinNetTrainer():
     ##################################################################
     
     def training (self, pathDirData, pathModel, nnArchitecture, 
-                nnIsTrained, nnInChanCount, nnClassCount, 
-                trBatchSize, trMaxEpoch, launchTimestamp = None, 
+                nnIsTrained, nnInChanCount, nnClassCount,
+                trBatchSize, trMaxEpoch, loss_weights, launchTimestamp = None, 
                 checkpoint = None, vein_loss = False, 
                 cropped_fldr = None, bounding_box_folder = None):
         
@@ -437,15 +490,16 @@ class VeinNetTrainer():
         for epochID in range (0, trMaxEpoch):
 
             timestampSTART = time.strftime("%d%m%Y") + '-' + time.strftime("%H%M%S")
-            lossTrain = self.epochTrain (model, train_loader, optimizer, 
-                            scheduler, trBatchSize, trMaxEpoch, nnClassCount, 
-                            loss_class,  vein_loss,
-                            cropped_fldr, bounding_box_folder)
-            
-            lossVal = self.epochVal (model, valid_loader, optimizer, 
-                                    scheduler, trBatchSize, trMaxEpoch, 
-                                    nnClassCount, loss_class,  vein_loss,
+            lossTrain, lossTrain_v = self.epochTrain (model, train_loader, optimizer, 
+                                    scheduler, trBatchSize, trMaxEpoch, nnClassCount, 
+                                    loss_class, loss_weights, vein_loss,
                                     cropped_fldr, bounding_box_folder)
+            
+            lossVal, lossVal_v = self.epochVal (model, valid_loader, optimizer, 
+                                            scheduler, trBatchSize, trMaxEpoch, 
+                                            nnClassCount, loss_class, loss_weights, 
+                                            vein_loss,
+                                            cropped_fldr, bounding_box_folder)
             
             timestampEND = time.strftime("%d%m%Y") + '-' + time.strftime("%H%M%S")
             
@@ -454,9 +508,12 @@ class VeinNetTrainer():
             if lossVal < lossMIN:
                 lossMIN = lossVal    
                 torch.save({'epoch': epochID + 1, 'state_dict': model.state_dict(), 'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, pathModel)
-                print ('Epoch [' + str(epochID + 1) + '] [save] [' + timestampEND + '] loss= ' + str(lossTrain) + str(lossVal))
+                print ('Epoch [' + str(epochID + 1) + '] [save] [' + timestampEND + ']')
             else:
                 print ('Epoch [' + str(epochID + 1) + '] [----] [' + timestampEND + '] loss= ' + str(lossTrain) + str(lossVal))
+            print('Train_loss= ' + str(lossTrain.data) + 'Val_loss= ' + str(lossVal.data))
+            print('Train_loss_vein= ' + str(lossTrain_v.data) + 'Val_loss_vein= ' + str(lossVal_v.data))
+            print('-' * 100)
         
         # torch.cuda.empty_cache()
         print('-' * 50 + 'Finished Training' + '-' * 50)
@@ -467,8 +524,8 @@ class VeinNetTrainer():
     #################################################################
     
     def test (self, pathFileTest, pathModel, nnArchitecture, nnInChanCount, 
-                nnClassCount, nnIsTrained, trBatchSize, launchTimeStamp,
-                vein_loss = False, cropped_fldr = None, 
+                nnClassCount, nnIsTrained, trBatchSize, loss_weights, 
+                launchTimeStamp, vein_loss = False, cropped_fldr = None, 
                 bounding_box_folder = None):   
         
         cudnn.benchmark = True

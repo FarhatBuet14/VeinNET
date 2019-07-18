@@ -36,7 +36,8 @@ def runTrain(nnArchitecture, gpu = False):
     
     #---- Training settings: batch size, maximum number of epochs
     trBatchSize = 32
-    trMaxEpoch = 2
+    trMaxEpoch = 25
+    loss_weights = [0.2, 0.8]
     # checkpoint = None
     pathModel = train_Output_data + 'm_' + timestampLaunch +  '.pth.tar'
 
@@ -49,7 +50,7 @@ def runTrain(nnArchitecture, gpu = False):
     vein = VeinNetTrainer(gpu)
     vein.training(pathDirData, pathModel, nnArchitecture, nnIsTrained, 
                 nnInChanCount, nnClassCount, trBatchSize, 
-                trMaxEpoch, timestampLaunch, None,
+                trMaxEpoch, loss_weights, timestampLaunch, None,
                 vein_loss, cropped_fldr, bounding_box_folder)
     del vein
 
@@ -64,6 +65,7 @@ def runTest(nnArchitecture, gpu = False):
     nnInChanCount = 3
     nnClassCount = 4
     trBatchSize = 64
+    loss_weights = [0.2, 0.8]
     
     pathModel = './Model_Output/m-25012018-123527.pth.tar'
     
@@ -78,14 +80,12 @@ def runTest(nnArchitecture, gpu = False):
     vein = VeinNetTrainer(gpu)
     vein.test(pathFileTest, pathModel, nnArchitecture, 
             nnInChanCount, nnClassCount, nnIsTrained, 
-            trBatchSize, vein_loss, 
+            trBatchSize, loss_weights, vein_loss, 
             cropped_fldr, bounding_box_folder)
 
 ######################### Main Function  #########################
 
 torch.cuda.empty_cache()
-nnArchitecture = 'resnet50'
+nnArchitecture = 'resnet18'
 # runTest(nnArchitecture, gpu = True)
 runTrain(nnArchitecture, gpu = True)
-
-print("finished")
