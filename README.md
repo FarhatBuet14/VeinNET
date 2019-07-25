@@ -45,4 +45,4 @@ This project is to detect the dorsal vein using an infrared illuminator and then
 		- epochTrain
 		- epochVal
 		- training
-		- test
+		- testing
