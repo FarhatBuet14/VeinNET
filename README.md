@@ -1,10 +1,10 @@
 # Human-Identification-through-Matching-Dorsal-Vein
 This project is to detect the dorsal vein using an infrared illuminator and then enhancement of vein images is done by using different techniques for identifying the person. The proposed work is related to the implementation of Infrared vein detection and matching system for person identification.
 
-### [Video Link](https://youtu.be/0xPcVjBJbuc)
+## [Video Link](https://youtu.be/0xPcVjBJbuc)
 
 
-### Description - 
+## Description - 
 
 ![vein-01.jpg](https://github.com/FarhatBuet14/Human-Identification-through-Matching-Dorsal-Vein/blob/master/Images/vein-01.jpg)
 ![vein-02.jpg](https://github.com/FarhatBuet14/Human-Identification-through-Matching-Dorsal-Vein/blob/master/Images/vein-02.jpg)
@@ -19,15 +19,15 @@ This project is to detect the dorsal vein using an infrared illuminator and then
 ![vein-11.jpg](https://github.com/FarhatBuet14/Human-Identification-through-Matching-Dorsal-Vein/blob/master/Images/vein-11.jpg)
 
 
-### Code Description - 
+## Code Description - 
  	
-#dataset_builder.py 
+### dataset_builder.py
 --------------------------------------- 1) get_ID
  										2) SeedlingDataset
  										   	- get_processed
  										3) dataset_builder
  	
-#utils.py 
+### utils.py
 --------------------------------------- 1) Cal_loss
 											- mae
 											- mse
@@ -36,11 +36,11 @@ This project is to detect the dorsal vein using an infrared illuminator and then
  										   	- get_vein_img
  										   	- cal_vein_loss
 
-#model.py 
+### model.py
 --------------------------------------- 1) load_model
  										2) SimpleCNN
  	
-#trainer.py 
+### trainer.py
 --------------------------------------- 1) VeinNetTrainer
  										   	- epochTrain
  										   	- epochVal
