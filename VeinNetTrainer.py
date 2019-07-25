@@ -69,68 +69,23 @@ class VeinNetTrainer():
         
         def get_processed(self, image):
             
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            
-            # Preprocessed
-            image = cv2.ximgproc.guidedFilter(image, image, 13, 70)
-            image = np.array(image)
-            #-----Converting image to LAB Color model
-            lab= cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-            #-----Splitting the LAB image to different channels
-            l, a, b = cv2.split(lab)
-            #-----Applying CLAHE to L-channel
-            clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8))
-            cl = clahe.apply(l)
-            #-----Merge the CLAHE enhanced L-channel with the a and b channel
-            image = cv2.merge((cl,a,b))
-            #-----Converting image from LAB Color model to RGB model
-            image = cv2.cvtColor(image, cv2.COLOR_LAB2BGR)
-            
+            # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            pr_img = []
             # Find AccumulatedEdged
-            accumEdged = np.zeros(image.shape[:2], dtype="uint8")
             for chan in cv2.split(image):
                 chan = cv2.medianBlur(chan, 3)
                 chan = cv2.Canny(chan, 50, 150)
-                accumEdged = cv2.bitwise_or(accumEdged, chan) 
-            # Find Contours
-            cnts = cv2.findContours(accumEdged, cv2.RETR_EXTERNAL,
-                                    cv2.CHAIN_APPROX_SIMPLE)
-            cnts = imutils.grab_contours(cnts)
-            cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
-
-            # Delete the short contours less than length_threshold
-            cnts_nedded = []
-            Length = []
-            for c in cnts:
-                if( cv2.arcLength(c, False) > self.cnt_length_thresh ):
-                    Length.append(cv2.arcLength(c, False))
-                    cnts_nedded.append(c)
-            all_cnts = np.zeros((1, 1, 2))    
-            for cnt in cnts_nedded:
-                all_cnts = np.append(all_cnts, cnt, axis = 0)
-            all_cnts = all_cnts[1:, :, :]
-            all_cnts = np.reshape(all_cnts, (all_cnts.shape[0], 2))
-            blank = np.zeros((240, 300, 3))
-            cnt_image = cv2.drawContours(blank,
-                            np.array(all_cnts).reshape((-1,1,2)).astype(np.int32),
-                            -1, (255,255,255), 2)
-            final_cnt_image = np.zeros((240, 300))
-            for chan in cv2.split(cnt_image):
-                final_cnt_image += chan
-            # Add the features to the Image Channels
-            image = np.zeros((240, 300, 3), dtype="float32")
-            image[:, :, 0] = gray
-            image[:, :, 1] = accumEdged
-            image[:, :, 2] = final_cnt_image
-            
-            image = image/255
-            return image
+                pr_img.append(chan)
+            pr_img = np.array(pr_img, dtype = 'float32')
+            pr_img = (pr_img / 255).reshape((240, 300, 3))
+                       
+            return pr_img
         
         def __len__(self):
             return len(self.labels)
         
         def __getitem__(self, idx):
-            img_name = self.labels.iloc[idx, 0]
+            img_name = str(self.labels.iloc[idx, 0])
             fullname = join(self.root_dir, img_name)
             image = np.array(Image.open(fullname).convert('RGB'))
             image = self.get_processed(image)
@@ -138,7 +93,7 @@ class VeinNetTrainer():
                                 dtype = torch.float32)
             if self.transform:
                 image = self.transform(image)
-            return image, labels
+            return image, labels, img_name
     
     ######################### MAE/MSE Loss #########################
     ################################################################
@@ -167,17 +122,18 @@ class VeinNetTrainer():
     ####################################################################
 
     class Vein_loss_class():    
-        def __init__(self, varTarget, varOutput, varInput, 
-                    cropped_fldr, bounding_box_folder, ids):
-            self.target = varTarget[0].cpu().numpy()
-            self.output = varOutput[0].cpu().numpy()
-            self.input = varInput[0].cpu().numpy()
+        def __init__(self, varTarget, varOutput, img_name, varInput, 
+                    cropped_fldr, bounding_box_folder, data_folder, ids):
+            self.target = varTarget.cpu().numpy()
+            self.output = varOutput.cpu().numpy()
+            self.input = varInput.cpu().numpy()
             self.id = ids.cpu().numpy()
-            
-            del varInput, varOutput, varTarget, ids
-            
+            self.id = np.array(self.id, dtype = 'int32')
+            self.img_name = img_name
             self.bounding_box_folder = bounding_box_folder
             self.cropped_fldr = cropped_fldr
+            self.data_folder = data_folder
+            self.total_input = len(self.id)
             self.height = 90
             self.width = 70
             self.th = 10
@@ -186,84 +142,90 @@ class VeinNetTrainer():
 
         def get_vein_img(self, save_vein_pic = False,
                         save_bb = False):    
-            
-            top_left = self.output[0:2]
-            top_right = self.output[2:4]
-            
-            # Find the angle to rotate the image
-            angle  = (180/np.pi) * (np.arctan((top_left[1] - top_right[1])/
-                                    (top_left[0] - top_right[0])))
-            
-            # Rotate the image to cut rectangle from the images
-            points_pred = self.output.reshape((1, 2, 2))
-            points_test = self.target.reshape((1, 2, 2))
-            image = self.input[0, :, :] * 255
-            image = image.reshape((1, 240, 300))
-            image_rotated , keypoints_pred_rotated = iaa.Affine(rotate=-angle)(images=image, 
-                                        keypoints=points_pred)
-            _ , keypoints_test_rotated = iaa.Affine(rotate=-angle)(images=image, 
-                                        keypoints=points_test)
-            
-            image_rotated = image_rotated.reshape((240, 300))
-            keypoints_pred_rotated = keypoints_pred_rotated.reshape((2, 2))
-            keypoints_test_rotated = keypoints_test_rotated.reshape((2, 2))
-            
-            # Rotated Points
-            top_left_ = keypoints_pred_rotated[0]    
-            top_left_ = tuple(top_left_.reshape(1, -1)[0])
-            
-            center = np.zeros((2, )).astype(int)
-            center[0] = top_left_[0] + int(self.width/2)  - self.th
-            center[1] = top_left_[1] + int(self.height/2)
-            center = tuple(center.reshape(1, -1)[0])
-            
-            # Crop the Vein Image
-            crop = cv2.getRectSubPix(image_rotated, (self.width, self.height), 
-                                    center)
-            if(save_vein_pic):
-                cv2.imwrite(self.cropped_fldr + str(self.id) + '.bmp', crop)
-            
-            # Draw Predicted Troughs
-            points = keypoints_pred_rotated.reshape((2, 2))    
-            for point in points:   
-                point = np.array(point).astype(int)
-                cv2.circle(image_rotated, (point[0], point[1]), 
-                        5, (0, 0, 0), -1)
-            
-            # Draw Actual Troughs
-            points = keypoints_test_rotated.reshape((2, 2))    
-            for point in points:   
-                point = np.array(point).astype(int)
-                cv2.circle(image_rotated, (point[0], point[1]), 
-                        5, (255, 0, 0), -1)
-            
-            # Points for Bounding Boxes
-            tl = np.zeros((2, )).astype(int)
-            tl[0] = center[0] - int(self.width/2)  
-            tl[1] = center[1] - int(self.height/2)
-            tl = tuple(tl.reshape(1, -1)[0])
-            
-            br = np.zeros((2, )).astype(int)
-            br[0] = center[0] + int(self.width/2)  
-            br[1] = center[1] + int(self.height/2)
-            br = tuple(br.reshape(1, -1)[0])
-            
-            # Draw Bounding Boxes and Save the image
-            image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
-            if(save_bb):
-                cv2.imwrite(self.bounding_box_folder + str(self.id) + '.bmp', 
-                            image_rotated)
+            crop = []
+            for sample in range(0, self.total_input): 
+                top_left = self.output[sample, 0:2]
+                top_right = self.output[sample, 2:4]
+                
+                # Find the angle to rotate the image
+                angle  = (180/np.pi) * (np.arctan((top_left[1] - top_right[1])/
+                                        (top_left[0] - top_right[0])))
+                
+                # Rotate the image to cut rectangle from the images
+                points_pred = (self.output[sample]).reshape((1, 2, 2))
+                points_test = (self.target[sample]).reshape((1, 2, 2))
+                image = cv2.imread(self.data_folder + self.img_name[sample])
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                image = image.reshape((1, 240, 300))
+                image_rotated , keypoints_pred_rotated = iaa.Affine(rotate=-angle)(images=image, 
+                                            keypoints=points_pred)
+                _ , keypoints_test_rotated = iaa.Affine(rotate=-angle)(images=image, 
+                                            keypoints=points_test)
+                
+                image_rotated = image_rotated.reshape((240, 300))
+                keypoints_pred_rotated = keypoints_pred_rotated.reshape((2, 2))
+                keypoints_test_rotated = keypoints_test_rotated.reshape((2, 2))
+                
+                # Rotated Points
+                top_left_ = keypoints_pred_rotated[0]    
+                top_left_ = tuple(top_left_.reshape(1, -1)[0])
+                
+                center = np.zeros((2, )).astype(int)
+                center[0] = top_left_[0] + int(self.width/2)  - self.th
+                center[1] = top_left_[1] + int(self.height/2)
+                center = tuple(center.reshape(1, -1)[0])
+                
+                # Crop the Vein Image
+                cropped = cv2.getRectSubPix(image_rotated, (self.width, self.height), 
+                                        center)
+                crop.append(cropped)
+                if(save_vein_pic):
+                    cv2.imwrite(self.cropped_fldr + self.img_name[sample], cropped)
+                
+                # Draw Predicted Troughs
+                points = keypoints_pred_rotated.reshape((2, 2))    
+                for point in points:   
+                    point = np.array(point).astype(int)
+                    cv2.circle(image_rotated, (point[0], point[1]), 
+                            5, (0, 0, 0), -1)
+                
+                # Draw Actual Troughs
+                points = keypoints_test_rotated.reshape((2, 2))    
+                for point in points:   
+                    point = np.array(point).astype(int)
+                    cv2.circle(image_rotated, (point[0], point[1]), 
+                            5, (255, 0, 0), -1)
+                
+                # Points for Bounding Boxes
+                tl = np.zeros((2, )).astype(int)
+                tl[0] = center[0] - int(self.width/2)  
+                tl[1] = center[1] - int(self.height/2)
+                tl = tuple(tl.reshape(1, -1)[0])
+                
+                br = np.zeros((2, )).astype(int)
+                br[0] = center[0] + int(self.width/2)  
+                br[1] = center[1] + int(self.height/2)
+                br = tuple(br.reshape(1, -1)[0])
+                
+                # Draw Bounding Boxes and Save the image
+                image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
+                if(save_bb):
+                    cv2.imwrite(self.bounding_box_folder + self.img_name[sample], 
+                                image_rotated)
+            crop = np.array(crop)
             return crop
         
         def cal_vein_loss(self):
 
             vein_image = self.get_vein_img()
-            
+            vein_loss = 0
             # Calculate loss from extracted Vein Image
-            accu = ((vein_image <= self.thresh_h)  & (vein_image >= self.thresh_l))
-            true = np.count_nonzero(accu)
-            false = (accu.shape[0] * accu.shape[1]) - true
-            vein_loss = Variable(torch.tensor((false / (false + true))), requires_grad=True)
+            for sample in range(0, self.total_input):
+                accu = ((vein_image[sample] <= self.thresh_h)  & (vein_image[sample] >= self.thresh_l))
+                true = np.count_nonzero(accu)
+                false = (accu.shape[0] * accu.shape[1]) - true
+                vein_loss += Variable(torch.tensor((false / (false + true))), requires_grad=True)
+            vein_loss = vein_loss / self.total_input
             
             return vein_loss * 100
 
@@ -273,11 +235,10 @@ class VeinNetTrainer():
     class SimpleCNN(torch.nn.Module):
     
         #Our batch shape for input x is (3, 240, 300)
-        
         def __init__(self):
             super(VeinNetTrainer.SimpleCNN, self).__init__()
             self.layer1 = torch.nn.Sequential(
-                torch.nn.Conv2d(1, 32, kernel_size=5, stride=1, padding=2),
+                torch.nn.Conv2d(3, 32, kernel_size=5, stride=1, padding=2),
                 torch.nn.ReLU(),
                 torch.nn.MaxPool2d(kernel_size=1, stride=1))
             self.layer2 = torch.nn.Sequential(
@@ -302,13 +263,12 @@ class VeinNetTrainer():
     
     def epochTrain (self, model, dataLoader, optimizer, scheduler, trBatchSize,
                     epochMax, classCount, loss_class, loss_weights, vein_loss = False,
-                    cropped_fldr = None, bounding_box_folder = None):
+                    cropped_fldr = None, bounding_box_folder = None, data_folder = None):
         
         model.train()
         w_mae, w_veinLoss = loss_weights
-        loss = 0
         loss_v = 0
-        for batchID, (input, target) in enumerate (dataLoader):
+        for batchID, (input, target, img_name) in enumerate (dataLoader):
             # torch.cuda.empty_cache()
             
             id = target[:, 0]
@@ -318,23 +278,25 @@ class VeinNetTrainer():
             output = (Variable(varOutput).data).cpu()
 
             del varInput, varOutput
-            
-            loss += (loss_class.calculate(target, output) * w_mae)
-            if(vein_loss):
-                vein_loss_class = self.Vein_loss_class(target, output, 
-                                                        input, cropped_fldr, 
-                                                        bounding_box_folder, id)
-                vein_loss_class.get_vein_img(save_vein_pic = True,
-                                                        save_bb = True)
-                loss_v += (vein_loss_class.cal_vein_loss() * w_veinLoss)
+            loss = Variable(func.mse_loss(output, target).data, requires_grad=True)
+            # loss += loss_class.calculate(target, output)
+            # if(vein_loss):
+            #     vein_loss_class = self.Vein_loss_class(target, output, img_name,
+            #                                             input, cropped_fldr, 
+            #                                             bounding_box_folder,
+            #                                             data_folder, id)
+            #     vein_loss_class.get_vein_img(save_vein_pic = True,
+            #                                             save_bb = True)
+            #     loss_v += vein_loss_class.cal_vein_loss()
 
             optimizer.zero_grad()
             loss.backward(retain_graph=True)
             optimizer.step()
             
-            del input, target, id, output, vein_loss_class
-        loss = loss / trBatchSize
-        loss_v = loss_v / trBatchSize
+            del input, target, id, output#, vein_loss_class
+
+        loss = (loss / (batchID+1))  * w_mae
+        # loss_v = (loss_v / (batchID+1))  * w_veinLoss
         return loss, loss_v
 
     ######################### Epoch Validation #########################
@@ -342,14 +304,14 @@ class VeinNetTrainer():
     
     def epochVal (self, model, dataLoader, optimizer, scheduler, trBatchSize,
                     epochMax, classCount, loss_class, loss_weights, vein_loss = False,
-                    cropped_fldr = None, bounding_box_folder = None):
+                    cropped_fldr = None, bounding_box_folder = None, data_folder = None):
         
         model.eval ()
+        w_mae, w_veinLoss = loss_weights
         loss = 0
         loss_v = 0
         with torch.no_grad():
-            for i, (input, target) in enumerate (dataLoader):
-                # torch.cuda.empty_cache()
+            for batchID, (input, target, img_name) in enumerate (dataLoader):
                 id = target[:, 0]
                 target = target[:, 1:]
                 varInput = torch.autograd.Variable(input.cuda())
@@ -357,19 +319,21 @@ class VeinNetTrainer():
                 output = (Variable(varOutput).data).cpu()
 
                 del varInput, varOutput
-                
-                loss += loss_class.calculate(target, output)
-                if(vein_loss):
-                    vein_loss_class = self.Vein_loss_class(target, output, 
-                                                            input, cropped_fldr, 
-                                                            bounding_box_folder, id)
-                    vein_loss_class.get_vein_img(save_vein_pic = True,
-                                                            save_bb = True)
-                    loss_v += vein_loss_class.cal_vein_loss()
+                loss += func.mse_loss(output, target)
+                # loss += loss_class.calculate(target, output)
+                # if(vein_loss):
+                #     vein_loss_class = self.Vein_loss_class(target, output, img_name,
+                #                                             input, cropped_fldr, 
+                #                                             bounding_box_folder, 
+                #                                             data_folder, id)
+                #     vein_loss_class.get_vein_img(save_vein_pic = True,
+                #                                             save_bb = True)
+                #     loss_v += vein_loss_class.cal_vein_loss()
 
-                del input, target, output, id, vein_loss_class
-            loss = loss / trBatchSize
-            loss_v = loss_v / trBatchSize
+                del input, target, output, id#, vein_loss_class
+
+            loss = (loss / (batchID+1))  * w_mae
+            # loss_v = (loss_v / (batchID+1))  * w_veinLoss
         return loss, loss_v
     
     ########################### Load Model ###########################
@@ -389,6 +353,13 @@ class VeinNetTrainer():
         num_ftrs = model.fc.in_features
         model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
         #model.classifier._modules['6'] = torch.nn.Linear(4096, nnClassCount)
+
+        # let's make our model work with 6 channels
+        trained_kernel = model.conv1.weight
+        new_conv = nn.Conv2d(nnInChanCount, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        with torch.no_grad():
+            new_conv.weight[:,:] = torch.stack([torch.mean(trained_kernel, 1)]*nnInChanCount, dim=1)
+        model.conv1 = new_conv
 
         print('-' * 100)
         for idx, m in enumerate(model.modules()):
@@ -467,13 +438,14 @@ class VeinNetTrainer():
         del train_data, valid_data, X_names, y, ID, data_df
         
         #-------------------- SETTINGS: OPTIMIZER & SCHEDULER
-        optimizer = optim.Adam (model.parameters(), lr=0.0001, betas=(0.9, 0.999), 
-                                eps=1e-08, weight_decay=1e-5)
+        optimizer = optim.Adam (model.parameters(), lr  =1e-3)#, betas=(0.9, 0.999), 
+                                #eps=1e-08, weight_decay=1e-5)
         scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, factor = 0.1, 
                                                     patience = 5, mode = 'min')
                 
         #-------------------- SETTINGS: LOSS
-        loss_class = self.Cal_loss(loss_type = 'mae')
+        # loss_class = self.Cal_loss(loss_type = 'mae')
+        loss_class = None
 
         # #---- Load checkpoint 
         # if checkpoint != None:
@@ -483,7 +455,6 @@ class VeinNetTrainer():
 
         
         #---- TRAIN THE NETWORK
-        
         lossMIN = 100000
         # torch.cuda.empty_cache()
         print('-' * 50 + 'Start Training' + '-' * 50)
@@ -493,13 +464,13 @@ class VeinNetTrainer():
             lossTrain, lossTrain_v = self.epochTrain (model, train_loader, optimizer, 
                                     scheduler, trBatchSize, trMaxEpoch, nnClassCount, 
                                     loss_class, loss_weights, vein_loss,
-                                    cropped_fldr, bounding_box_folder)
+                                    cropped_fldr, bounding_box_folder, pathDirData)
             
             lossVal, lossVal_v = self.epochVal (model, valid_loader, optimizer, 
                                             scheduler, trBatchSize, trMaxEpoch, 
                                             nnClassCount, loss_class, loss_weights, 
-                                            vein_loss,
-                                            cropped_fldr, bounding_box_folder)
+                                            vein_loss, cropped_fldr, 
+                                            bounding_box_folder, pathDirData)
             
             timestampEND = time.strftime("%d%m%Y") + '-' + time.strftime("%H%M%S")
             
@@ -510,9 +481,9 @@ class VeinNetTrainer():
                 torch.save({'epoch': epochID + 1, 'state_dict': model.state_dict(), 'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, pathModel)
                 print ('Epoch [' + str(epochID + 1) + '] [save] [' + timestampEND + ']')
             else:
-                print ('Epoch [' + str(epochID + 1) + '] [----] [' + timestampEND + '] loss= ' + str(lossTrain) + str(lossVal))
+                print ('Epoch [' + str(epochID + 1) + '] [----] [' + timestampEND + ']')
             print('Train_loss= ' + str(lossTrain.data) + 'Val_loss= ' + str(lossVal.data))
-            print('Train_loss_vein= ' + str(lossTrain_v.data) + 'Val_loss_vein= ' + str(lossVal_v.data))
+            # print('Train_loss_vein= ' + str(lossTrain_v.data) + 'Val_loss_vein= ' + str(lossVal_v.data))
             print('-' * 100)
         
         # torch.cuda.empty_cache()

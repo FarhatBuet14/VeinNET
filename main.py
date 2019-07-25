@@ -42,7 +42,7 @@ def runTrain(nnArchitecture, gpu = False):
     pathModel = train_Output_data + 'm_' + timestampLaunch +  '.pth.tar'
 
     #---- Training settings: Vein Loss
-    vein_loss = True
+    vein_loss = False
     cropped_fldr = train_Output_data + 'Cropped/'
     bounding_box_folder = train_Output_data + 'Prediction/'
     print('-' * 100)
@@ -86,6 +86,6 @@ def runTest(nnArchitecture, gpu = False):
 ######################### Main Function  #########################
 
 torch.cuda.empty_cache()
-nnArchitecture = 'resnet18'
+nnArchitecture = 'resnet50'
 # runTest(nnArchitecture, gpu = True)
 runTrain(nnArchitecture, gpu = True)
