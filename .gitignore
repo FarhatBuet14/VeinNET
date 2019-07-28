@@ -1,6 +1,7 @@
 *.bmp
 *.npz
 *.h5
+*.ini
 */Before/*
 Before/*
 */Model_Output/*
@@ -11,4 +12,3 @@ Model_Output/*
 pandas/*
 */__pycache__/*
 __pycache__/*
-*.ini
