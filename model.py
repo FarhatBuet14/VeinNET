@@ -22,7 +22,7 @@ def load_model (nnArchitecture, nnIsTrained,
     model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
     #model.classifier._modules['6'] = torch.nn.Linear(4096, nnClassCount)
 
-    # let's make our model work with 6 channels
+    # let's make our model work with channels we want
     trained_kernel = model.conv1.weight
     new_conv = torch.nn.Conv2d(nnInChanCount, 64, kernel_size=7, stride=2, padding=3, bias=False)
     with torch.no_grad():
@@ -30,9 +30,9 @@ def load_model (nnArchitecture, nnIsTrained,
     model.conv1 = new_conv
 
     print('-' * 100)
-    for idx, m in enumerate(model.modules()):
-        print("{} is {}".format(idx, m))
-    print('-' * 100)
+    # for idx, m in enumerate(model.modules()):
+    #     print("{} is {}".format(idx, m))
+    # print('-' * 100)
     
     if(gpu):
         model = model.cuda()
