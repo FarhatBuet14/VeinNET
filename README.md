@@ -21,13 +21,13 @@ This project is to detect the dorsal vein using an infrared illuminator and then
 
 ## Code Description - 
  	
-1. dataset_builder.py
+1. utils.py
 	- get_ID
 	- SeedlingDataset
     	- get_processed
 	- dataset_builder
 
-2. utils.py
+2. losses.py
 	- Cal_loss 
 		- mae
 		- mse
@@ -45,4 +45,7 @@ This project is to detect the dorsal vein using an infrared illuminator and then
 		- epochTrain
 		- epochVal
 		- training
+
+5. test.py
+	- VeinVetTester
 		- testing
