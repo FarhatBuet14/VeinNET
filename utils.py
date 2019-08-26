@@ -38,15 +38,16 @@ class SeedlingDataset(Dataset):
     def get_processed(self, image):
         
         # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        pr_img = []
-        # Find AccumulatedEdged
-        for chan in cv2.split(image):
-            chan = cv2.medianBlur(chan, 3)
-            chan = cv2.Canny(chan, 50, 150)
-            pr_img.append(chan)
-        pr_img = np.array(pr_img, dtype = 'float32')
-        pr_img = (pr_img / 255).reshape((240, 300, 3))
-                    
+        # pr_img = []
+        pr_img = image
+        # # Find AccumulatedEdged
+        # for chan in cv2.split(image):
+        #     chan = cv2.medianBlur(chan, 3)
+        #     chan = cv2.Canny(chan, 50, 150)
+        #     pr_img.append(chan)
+        # pr_img = np.array(pr_img, dtype = 'float32')
+        # pr_img = (pr_img).reshape((240, 300, 3))        # / np.max(pr_img)
+              
         return pr_img
     
     def __len__(self):

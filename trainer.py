@@ -21,7 +21,7 @@ import utils, losses, model
 class VeinNetTrainer():
 
     #---- Train the VeinNet network 
-    #---- pathDirData - path to the directory that contains images
+    #---- pathDirData - path to the directory that contains train images
     #---- nnArchitecture - model architecture 'resnet50', 'resnet34' or 'resnet18'
     #---- nnIsTrained - if True, uses pre-trained version of the network (pre-trained on imagenet)
     #---- nnClassCount - number of output classes 
@@ -58,7 +58,7 @@ class VeinNetTrainer():
             varInput = torch.autograd.Variable(input.cuda())
             varOutput = model(varInput)
             output = (Variable(varOutput).data).cpu()
-            #loss = Variable(func.mse_loss(output, target), requires_grad = True)
+            # loss = Variable(func.mse_loss(output, target), requires_grad = True)
             loss = loss_class.calculate(target, output)
 
             optimizer.zero_grad()
@@ -106,7 +106,10 @@ class VeinNetTrainer():
                                         nnInChanCount, nnClassCount)
 
         #-------------------- SETTINGS: DATASET BUILDERS
-        trans = transforms.Compose([transforms.ToTensor()])
+        trans = transforms.Compose([transforms.ToTensor(), 
+                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+                                    # transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                    #                         std=[0.229, 0.224, 0.225])])
         train_data, valid_data = utils.dataset_builder(pathDirData, 'Train')
         train_set = utils.SeedlingDataset(train_data, pathDirData, 
                                     transform = trans, normalize = True)
@@ -125,7 +128,7 @@ class VeinNetTrainer():
                                                     eps=1e-08)
                 
         #-------------------- SETTINGS: LOSS
-        loss_class = losses.Cal_loss(loss_type = 'mse')
+        loss_class = losses.Cal_loss(loss_type = 'mae')
   
         #---- TRAIN THE NETWORK
         lossMIN = 100000
@@ -179,7 +182,7 @@ if __name__ == "__main__":
                         help="Output Folder Directory")
     parser.add_argument("--pathModel", type=str, metavar = "",
                         help="Test model Directory")
-    parser.add_argument("--nnArchitecture", type=str, metavar = "",
+    parser.add_argument("-arc", "--nnArchitecture", type=str, metavar = "",
                         help="Name of Model Architechture")
     parser.add_argument("--nnInChanCount", type=int, metavar = "",
                         help="Number of Input channel")
@@ -187,7 +190,7 @@ if __name__ == "__main__":
                         help="Number of predicted values")
     parser.add_argument("--trBatchSize", type=int, metavar = "",
                         help="Batch Size")
-    parser.add_argument("--trMaxEpoch", type=int, metavar = "",
+    parser.add_argument("-ep", "--trMaxEpoch", type=int, metavar = "",
                         help="Number of epochs for training")
     parser.add_argument("--loss_weights", type=float, metavar = "",
                         help="Weights of different losses (MSE, Vein)")
@@ -205,7 +208,7 @@ if __name__ == "__main__":
     if(args.nnArchitecture):
         nnArchitecture = args.nnArchitecture
     else:
-        nnArchitecture = "resnet50"
+        nnArchitecture = "DENSE-NET-201"
     if args.trMaxEpoch:
         trMaxEpoch = args.trMaxEpoch
     else:
