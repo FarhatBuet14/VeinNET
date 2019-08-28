@@ -12,7 +12,7 @@ class SimpleCNN(torch.nn.Module):
         self.layer1 = torch.nn.Sequential(
             torch.nn.Conv2d(3, 32, kernel_size=5, stride=1, padding=2),
             torch.nn.ReLU(),
-            torch.nn.MaxPool2d(kernel_size=1, stride=1))
+            torch.nn.MaxPool2d(kernel_size=1, stride=1)) 
         self.layer2 = torch.nn.Sequential(
             torch.nn.Conv2d(32, 64, kernel_size=5, stride=1, padding=2),
             torch.nn.ReLU(),

@@ -9,7 +9,7 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torchvision import transforms 
 import torch.nn.functional as func
 import torch.optim as optim
 from torch.optim import lr_scheduler
@@ -55,15 +55,17 @@ class VeinNetTrainer():
             
             id = target[:, 0]
             target = target[:, 1:]
-            varInput = torch.autograd.Variable(input.cuda())
+            varInput = input.cuda()#) torch.autograd.Variable(
             varOutput = model(varInput)
-            output = (Variable(varOutput).data).cpu()
-            # loss = Variable(func.mse_loss(output, target), requires_grad = True)
-            loss = loss_class.calculate(target, output)
+            output = (varOutput.data).cpu() #Variable(
+            loss += Variable(func.mse_loss(output, target), requires_grad = True)
+            # loss = loss_class.calculate(target, output)
 
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+        
+        loss = loss/len(dataLoader)
 
         return loss, loss_v
 
@@ -82,12 +84,11 @@ class VeinNetTrainer():
             for batchID, (input, target, img_name) in enumerate (dataLoader):
                 id = target[:, 0]
                 target = target[:, 1:]
-                varInput = torch.autograd.Variable(input.cuda())
+                varInput = input.cuda()#) torch.autograd.Variable(
                 varOutput = model(varInput)
                 output = (Variable(varOutput).data).cpu()
-
-                # loss += func.mse_loss(output, target)
-                loss += loss_class.calculate(target, output)
+                loss += func.mse_loss(output, target)
+                # loss += loss_class.calculate(target, output)
         
             loss = loss/len(dataLoader)
             
@@ -106,10 +107,9 @@ class VeinNetTrainer():
                                         nnInChanCount, nnClassCount)
 
         #-------------------- SETTINGS: DATASET BUILDERS
-        trans = transforms.Compose([transforms.ToTensor(), 
-                                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-                                    # transforms.Normalize(mean=[0.485, 0.456, 0.406], 
-                                    #                         std=[0.229, 0.224, 0.225])])
+        trans = transforms.Compose([transforms.ToTensor()])
+        # ,
+        #                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         train_data, valid_data = utils.dataset_builder(pathDirData, 'Train')
         train_set = utils.SeedlingDataset(train_data, pathDirData, 
                                     transform = trans, normalize = True)
@@ -151,6 +151,7 @@ class VeinNetTrainer():
             timestampEND = time.strftime("%d%m%Y") + '-' + time.strftime("%H%M%S")
             
             scheduler.step(lossVal.data)
+            
             if lossVal < lossMIN: # Save the minimum validation point data
                 lossMIN = lossVal   
                 path = pathModel + 't_' + timestampLaunch + '_ltr_' + str(lossTrain.data) + '_lvl_' + str(lossVal) + '.pth.tar'

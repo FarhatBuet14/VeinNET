@@ -17,7 +17,7 @@ def load_model (nnArchitecture, nnIsTrained,
     elif nnArchitecture == 'alexnet': model = models.alexnet(nnClassCount, nnIsTrained)
     elif nnArchitecture == 'vgg19': model = models.vgg19(nnClassCount, nnIsTrained)
     elif nnArchitecture == 'DENSE-NET-121': 
-        from DensenetModels import DenseNet121
+        from DensenetModels import DenseNet121 
         model = DenseNet121(nnClassCount, nnIsTrained)
     elif nnArchitecture == 'DENSE-NET-169': 
         from DensenetModels import DenseNet169
@@ -25,6 +25,10 @@ def load_model (nnArchitecture, nnIsTrained,
     elif nnArchitecture == 'DENSE-NET-201': 
         from DensenetModels import DenseNet201
         model = DenseNet201(nnClassCount, nnIsTrained)
+        # # Remove the sigmoid layer
+        # model.densenet201.classifier = model.densenet201.classifier[:1]
+        # # Add a relu layer 
+        # model.densenet201.classifier.add_module('1', torch.nn.ReLU())
     elif nnArchitecture == 'mine': model = User_defined_model.SimpleCNN()
     
     # num_ftrs = model.fc.in_features

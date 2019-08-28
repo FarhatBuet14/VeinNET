@@ -36,17 +36,16 @@ class SeedlingDataset(Dataset):
         self.cnt_length_thresh = cnt_length_thresh
     
     def get_processed(self, image):
-        
-        # gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         # pr_img = []
         pr_img = image
-        # # Find AccumulatedEdged
+        # Find AccumulatedEdged
         # for chan in cv2.split(image):
         #     chan = cv2.medianBlur(chan, 3)
         #     chan = cv2.Canny(chan, 50, 150)
         #     pr_img.append(chan)
         # pr_img = np.array(pr_img, dtype = 'float32')
-        # pr_img = (pr_img).reshape((240, 300, 3))        # / np.max(pr_img)
+        # pr_img = (pr_img).reshape((240, 300, 3))
+        # pr_img = np.array((image / np.max(image)), dtype = "uint8")
               
         return pr_img
     
@@ -56,8 +55,10 @@ class SeedlingDataset(Dataset):
     def __getitem__(self, idx):
         img_name = str(self.labels.iloc[idx, 0])
         fullname = join(self.root_dir, img_name)
-        image = np.array(Image.open(fullname).convert('RGB'))
+        image = np.array(Image.open(fullname).convert("L"))
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
         image = self.get_processed(image)
+        image = Image.fromarray(image, "RGB") # Change the np-array to PIL image
         labels = torch.tensor(self.labels.iloc[idx, 1:], 
                             dtype = torch.float32)
         if self.transform:

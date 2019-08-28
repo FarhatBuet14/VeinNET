@@ -21,7 +21,7 @@ class DenseNet121(nn.Module):
 
         kernelCount = self.densenet121.classifier.in_features
 		
-        self.densenet121.classifier = nn.Sequential(nn.Linear(kernelCount, classCount), nn.Sigmoid())
+        self.densenet121.classifier = nn.Sequential(nn.Linear(kernelCount, classCount), nn.ReLU())
 
     def forward(self, x):
         x = self.densenet121(x)
@@ -37,7 +37,7 @@ class DenseNet169(nn.Module):
         
         kernelCount = self.densenet169.classifier.in_features
         
-        self.densenet169.classifier = nn.Sequential(nn.Linear(kernelCount, classCount), nn.Sigmoid())
+        self.densenet169.classifier = nn.Sequential(nn.Linear(kernelCount, classCount), nn.ReLU())
         
     def forward (self, x):
         x = self.densenet169(x)
@@ -53,7 +53,7 @@ class DenseNet201(nn.Module):
         
         kernelCount = self.densenet201.classifier.in_features
         
-        self.densenet201.classifier = nn.Sequential(nn.Linear(kernelCount, classCount), nn.Sigmoid())
+        self.densenet201.classifier = nn.Sequential(nn.Linear(kernelCount, classCount), nn.ReLU())
         
     def forward (self, x):
         x = self.densenet201(x)
