@@ -50,7 +50,8 @@ class VeinNetTrainer():
         model.train()
         runningLoss = torch.tensor(0).to(dtype = torch.float32, device = torch.device('cuda'))
         runningLoss_v = torch.tensor(0).to(dtype = torch.float32, device = torch.device('cuda'))
-        
+        runningTotalLoss = torch.tensor(0).to(dtype = torch.float32, device = torch.device('cuda'))
+
         loader = tqdm(dataLoader, total=len(dataLoader))
         for batchID, (input, target, img_name) in enumerate (loader):
             
@@ -70,12 +71,9 @@ class VeinNetTrainer():
                             vein_loss, vein_loss_class, 
                             loss_weights).type(torch.FloatTensor)
             
-            # Calculate loss explicitly
-            loss_p = loss_class.point_loss_value
-            loss_v = loss_class.vein_loss_value
-
-            runningLoss += loss_p
-            runningLoss_v += loss_v
+            runningLoss += loss_class.point_loss_value
+            runningLoss_v += loss_class.vein_loss_value
+            runningTotalLoss += loss
             
             optimizer.zero_grad()
             loss.backward()
@@ -83,8 +81,9 @@ class VeinNetTrainer():
         
         runningLoss = runningLoss.item()/len(dataLoader)
         runningLoss_v = runningLoss_v.item()/len(dataLoader)
+        runningTotalLoss = runningTotalLoss.item()/len(dataLoader)
 
-        return loss, runningLoss, runningLoss_v
+        return runningTotalLoss, runningLoss, runningLoss_v
 
     ######################### Epoch Validation #########################
     ####################################################################
@@ -186,7 +185,7 @@ class VeinNetTrainer():
             # Save the minimum validation point data
             if totalLossVal < lossMIN:
                 lossMIN = totalLossVal
-                path = pathModel + '_ltr_' + str(totalLossTrain.item()) + '_lvl_' + str(totalLossVal.item()) + '.pth.tar'
+                path = pathModel + '_ltr_' + str(totalLossTrain) + '_lvl_' + str(totalLossVal.item()) + '.pth.tar'
                 torch.save({'epoch': epochID + 1, 'state_dict': training_model.state_dict(), 
                             'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, path)
                 print ('Epoch [' + str(epochID + 1) + '] [save]')
@@ -194,7 +193,7 @@ class VeinNetTrainer():
                 print ('Epoch [' + str(epochID + 1) + '] [----]')
             
             # Print the losses
-            print('Train_loss = ' + str(totalLossTrain.item()))
+            print('Train_loss = ' + str(totalLossTrain))
             print('Val_loss   = ' + str(np.array(totalLossVal.cpu())))
             print('-' * 20)
             if(vein_loss):
@@ -246,7 +245,7 @@ if __name__ == "__main__":
     if(args.nnArchitecture):
         nnArchitecture = args.nnArchitecture
     else:
-        nnArchitecture = "resnet50"
+        nnArchitecture = "resnet18"
     if args.trMaxEpoch:
         trMaxEpoch = args.trMaxEpoch
     else:
