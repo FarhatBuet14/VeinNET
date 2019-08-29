@@ -28,25 +28,42 @@ def get_ID(img_names):
 
 class SeedlingDataset(Dataset):
     def __init__(self, labels, root_dir, cnt_length_thresh = 400, 
-                subset=False, transform = None, normalize=True):
+                subset=False, trans_pipeline = None, normalize=True):
         self.labels = labels
         self.root_dir = root_dir
-        self.transform = transform
+        self.trans_pipeline = trans_pipeline
         self.normalize = normalize
         self.cnt_length_thresh = cnt_length_thresh
     
     def get_processed(self, image):
-        # pr_img = []
-        pr_img = image
-        # Find AccumulatedEdged
-        # for chan in cv2.split(image):
-        #     chan = cv2.medianBlur(chan, 3)
-        #     chan = cv2.Canny(chan, 50, 150)
-        #     pr_img.append(chan)
-        # pr_img = np.array(pr_img, dtype = 'float32')
-        # pr_img = (pr_img).reshape((240, 300, 3))
-        # pr_img = np.array((image / np.max(image)), dtype = "uint8")
-              
+        
+        image = np.array(image)
+        hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        
+        # Find AccumulatedEdged for RGB
+        accu = np.zeros(image.shape[:2], dtype="uint8")
+        for chan in cv2.split(image):
+            chan = cv2.medianBlur(chan, 3)
+            chan = cv2.Canny(chan, 50, 150)
+            accu = cv2.bitwise_or(accu, chan)
+        accu = np.array(accu, dtype = 'float32')
+
+        # Find AccumulatedEdged for HSV
+        accu2 = np.zeros(hsv.shape[:2], dtype="uint8")
+        for chan in cv2.split(hsv):
+            chan = cv2.medianBlur(chan, 3)
+            chan = cv2.Canny(chan, 50, 150)
+            accu2 = cv2.bitwise_or(accu2, chan)
+        accu2 = np.array(accu2, dtype = 'float32')
+        
+        # Cascade all channels
+        pr_img = []
+        pr_img.append(gray)
+        pr_img.append(accu)
+        pr_img.append(accu2)
+        pr_img = np.array(pr_img).reshape((240, 300, len(pr_img)))
+
         return pr_img
     
     def __len__(self):
@@ -55,14 +72,12 @@ class SeedlingDataset(Dataset):
     def __getitem__(self, idx):
         img_name = str(self.labels.iloc[idx, 0])
         fullname = join(self.root_dir, img_name)
-        image = np.array(Image.open(fullname).convert("L"))
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        image = Image.open(fullname).convert("RGB")
         image = self.get_processed(image)
-        image = Image.fromarray(image, "RGB") # Change the np-array to PIL image
         labels = torch.tensor(self.labels.iloc[idx, 1:], 
                             dtype = torch.float32)
-        if self.transform:
-            image = self.transform(image)
+        if self.trans_pipeline:
+            image = self.trans_pipeline(image)
         return image, labels, img_name
 
 ######################### Dataset Builder #########################

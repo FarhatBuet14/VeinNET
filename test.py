@@ -6,10 +6,10 @@ import argparse
 from tqdm import tqdm
 
 import torch
-import torch.backends.cudnn as cudnn
+import torch.backends.cudnn as cudnn  
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
+from torchvision import transforms 
 import torch.nn.functional as func
 
 import utils, losses, model

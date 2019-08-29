@@ -14,7 +14,7 @@ import torch.nn.functional as func
 import torch.optim as optim
 from torch.optim import lr_scheduler
 
-import utils, losses, model
+import utils, losses, veinloss, model
 
 #######################  Define VeinBetTrainer Class  #########################
 
@@ -35,7 +35,7 @@ class VeinNetTrainer():
     ######################### Initialization #########################
     ##################################################################
 
-    def __init__(self, gpu = False):
+    def __init__(self, gpu = True):
         self.gpu = gpu
         torch.cuda.empty_cache()
     
@@ -44,77 +44,110 @@ class VeinNetTrainer():
     
     def epochTrain (self, model, dataLoader, optimizer, scheduler, trBatchSize,
                     epochMax, classCount, loss_class, loss_weights, vein_loss = False,
-                    cropped_fldr = None, bounding_box_folder = None, data_folder = None):
+                    vein_loss_class = None, cropped_fldr = None, 
+                    bounding_box_folder = None, data_folder = None):
         
         model.train()
-        w_mae, w_veinLoss = loss_weights
-        loss = 0
-        loss_v = 0
+        runningLoss = torch.tensor(0).to(dtype = torch.float32, device = torch.device('cuda'))
+        runningLoss_v = torch.tensor(0).to(dtype = torch.float32, device = torch.device('cuda'))
+        
         loader = tqdm(dataLoader, total=len(dataLoader))
         for batchID, (input, target, img_name) in enumerate (loader):
             
             id = target[:, 0]
             target = target[:, 1:]
-            varInput = input.cuda()#) torch.autograd.Variable(
-            varOutput = model(varInput)
-            output = (varOutput.data).cpu() #Variable(
-            loss += Variable(func.mse_loss(output, target), requires_grad = True)
-            # loss = loss_class.calculate(target, output)
+            input, target = Variable(input), Variable(target)
+            if(self.gpu):
+                input = input.type(torch.FloatTensor).to(device = torch.device('cuda'))
+                target = target.float().to(device= torch.device('cuda'))
+            else:
+                input = input.type(torch.DoubleTensor)
+                target = target.float()
+            
+            output = model(input)
+            # loss = func.mse_loss(output, target).type(torch.FloatTensor)
+            loss = loss_class(target, output, input, img_name, id,
+                            vein_loss, vein_loss_class, 
+                            loss_weights).type(torch.FloatTensor)
+            
+            # Calculate loss explicitly
+            loss_p = loss_class.point_loss_value
+            loss_v = loss_class.vein_loss_value
 
+            runningLoss += loss_p
+            runningLoss_v += loss_v
+            
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
         
-        loss = loss/len(dataLoader)
+        runningLoss = runningLoss.item()/len(dataLoader)
+        runningLoss_v = runningLoss_v.item()/len(dataLoader)
 
-        return loss, loss_v
+        return loss, runningLoss, runningLoss_v
 
     ######################### Epoch Validation #########################
     ####################################################################
     
     def epochVal (self, model, dataLoader, optimizer, scheduler, trBatchSize,
                     epochMax, classCount, loss_class, loss_weights, vein_loss = False,
-                    cropped_fldr = None, bounding_box_folder = None, data_folder = None):
+                    vein_loss_class = None, cropped_fldr = None, 
+                    bounding_box_folder = None, data_folder = None):
         
         model.eval ()
-        w_mae, w_veinLoss = loss_weights
-        loss = 0
-        loss_v = 0
+        runningLoss = 0
+        runningLoss_v = 0
         with torch.no_grad():
             for batchID, (input, target, img_name) in enumerate (dataLoader):
+                
                 id = target[:, 0]
                 target = target[:, 1:]
-                varInput = input.cuda()#) torch.autograd.Variable(
-                varOutput = model(varInput)
-                output = (Variable(varOutput).data).cpu()
-                loss += func.mse_loss(output, target)
-                # loss += loss_class.calculate(target, output)
-        
-            loss = loss/len(dataLoader)
+                if(self.gpu):
+                    input = input.type(torch.FloatTensor).to(device = torch.device('cuda'))
+                    target = target.float().to(device = torch.device('cuda'))
+                else:
+                    input = input.type(torch.DoubleTensor),
+                    target = target.float()
+                
+                output = model(input)
+                # loss = func.mse_loss(output, target)
+                loss = loss_class(target, output, input, img_name, id,
+                                vein_loss, vein_loss_class, 
+                                loss_weights).type(torch.FloatTensor)
             
-        return loss, loss_v
+                # Calculate loss explicitly
+                loss_p = loss_class.point_loss_value
+                loss_v = loss_class.vein_loss_value
+
+                runningLoss += loss_p
+                runningLoss_v += loss_v
+        
+            runningLoss = runningLoss/len(dataLoader)
+            runningLoss_v = runningLoss_v/len(dataLoader)
+            
+        return loss, runningLoss, runningLoss_v
     
     ######################### Train Function #########################
     ##################################################################
     
     def training (self, pathDirData, pathModel, nnArchitecture, 
                 nnIsTrained, nnInChanCount, nnClassCount,
-                trBatchSize, trMaxEpoch, loss_weights, launchTimestamp = None, 
+                trBatchSize, trMaxEpoch, loss_weights,
                 checkpoint = None, vein_loss = False, 
                 cropped_fldr = None, bounding_box_folder = None):
         
         training_model = model.load_model(nnArchitecture, nnIsTrained, 
-                                        nnInChanCount, nnClassCount)
+                                        nnInChanCount, nnClassCount, self.gpu)
 
         #-------------------- SETTINGS: DATASET BUILDERS
-        trans = transforms.Compose([transforms.ToTensor()])
-        # ,
-        #                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        trans_pipeline = transforms.Compose([transforms.ToTensor(),
+                                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+        
         train_data, valid_data = utils.dataset_builder(pathDirData, 'Train')
         train_set = utils.SeedlingDataset(train_data, pathDirData, 
-                                    transform = trans, normalize = True)
+                                    trans_pipeline = trans_pipeline, normalize = False)
         val_set = utils.SeedlingDataset(valid_data, pathDirData, 
-                                transform = trans, normalize = True)
+                                trans_pipeline = trans_pipeline, normalize = False)
 
         train_loader = DataLoader(train_set, batch_size = trBatchSize, shuffle = True)
         valid_loader = DataLoader(val_set, batch_size = trBatchSize, shuffle = True)
@@ -129,6 +162,7 @@ class VeinNetTrainer():
                 
         #-------------------- SETTINGS: LOSS
         loss_class = losses.Cal_loss(loss_type = 'mae')
+        vein_loss_class = veinloss.Vein_loss_class(cropped_fldr, bounding_box_folder, pathDirData)
   
         #---- TRAIN THE NETWORK
         lossMIN = 100000
@@ -136,36 +170,39 @@ class VeinNetTrainer():
 
         for epochID in range (0, trMaxEpoch):
 
-            timestampSTART = time.strftime("%d%m%Y") + '-' + time.strftime("%H%M%S")
-            lossTrain, lossTrain_v = self.epochTrain (training_model, train_loader, optimizer, 
+            totalLossTrain, lossTrain, lossTrain_v = self.epochTrain (training_model, train_loader, optimizer, 
                                     scheduler, trBatchSize, trMaxEpoch, nnClassCount, 
-                                    loss_class, loss_weights, vein_loss,
+                                    loss_class, loss_weights, vein_loss, vein_loss_class,
                                     cropped_fldr, bounding_box_folder, pathDirData)
             
-            lossVal, lossVal_v = self.epochVal (training_model, valid_loader, optimizer, 
+            totalLossVal, lossVal, lossVal_v = self.epochVal (training_model, valid_loader, optimizer, 
                                             scheduler, trBatchSize, trMaxEpoch, 
                                             nnClassCount, loss_class, loss_weights, 
-                                            vein_loss, cropped_fldr, 
+                                            vein_loss, vein_loss_class, cropped_fldr, 
                                             bounding_box_folder, pathDirData)
             
-            timestampEND = time.strftime("%d%m%Y") + '-' + time.strftime("%H%M%S")
+            scheduler.step(totalLossVal.data)
             
-            scheduler.step(lossVal.data)
-            
-            if lossVal < lossMIN: # Save the minimum validation point data
-                lossMIN = lossVal   
-                path = pathModel + 't_' + timestampLaunch + '_ltr_' + str(lossTrain.data) + '_lvl_' + str(lossVal) + '.pth.tar'
+            # Save the minimum validation point data
+            if totalLossVal < lossMIN:
+                lossMIN = totalLossVal
+                path = pathModel + '_ltr_' + str(totalLossTrain.item()) + '_lvl_' + str(totalLossVal.item()) + '.pth.tar'
                 torch.save({'epoch': epochID + 1, 'state_dict': training_model.state_dict(), 
                             'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, path)
-                print ('Epoch [' + str(epochID + 1) + '] [save] [' + timestampEND + ']')
+                print ('Epoch [' + str(epochID + 1) + '] [save]')
             else:
-                print ('Epoch [' + str(epochID + 1) + '] [----] [' + timestampEND + ']')
+                print ('Epoch [' + str(epochID + 1) + '] [----]')
+            
             # Print the losses
-            print('Train_loss= ' + str(lossTrain.data))
-            print('Val_loss= ' + str(lossVal))
+            print('Train_loss = ' + str(totalLossTrain.item()))
+            print('Val_loss   = ' + str(np.array(totalLossVal.cpu())))
+            print('-' * 20)
             if(vein_loss):
-                print('Train_loss_vein= ' + str(lossTrain_v))
-                print('Val_loss_vein= ' + str(lossVal_v))
+                print('Train_loss_point = ' + str(lossTrain))
+                print('Val_loss_point   = ' + str(lossVal.item()))
+                print('-' * 20)
+                print('Train_loss_vein = ' + str(lossTrain_v))
+                print('Val_loss_vein   = ' + str(lossVal_v.item()))
         
         print('-' * 50 + 'Finished Training' + '-' * 50)
 
@@ -209,11 +246,11 @@ if __name__ == "__main__":
     if(args.nnArchitecture):
         nnArchitecture = args.nnArchitecture
     else:
-        nnArchitecture = "DENSE-NET-201"
+        nnArchitecture = "resnet50"
     if args.trMaxEpoch:
         trMaxEpoch = args.trMaxEpoch
     else:
-        trMaxEpoch = 10
+        trMaxEpoch = 100
     if args.trBatchSize:
         trBatchSize = args.trBatchSize
     else:
@@ -243,17 +280,17 @@ if __name__ == "__main__":
     else:
         loss_weights = [1, 1]
     if(args.gpu):
-        gpu = True
+        gpu = args.gpu
     else:
-        gpu = False
+        gpu = True
     if(args.nnIsTrained):
         nnIsTrained = True
     else:
         nnIsTrained = False
     if(args.vein_loss):
-        vein_loss = True
+        vein_loss = args.vein_loss
     else:
-        vein_loss = False
+        vein_loss = True
     if(args.checkpoint):
         checkpoint = True
     else:
@@ -264,15 +301,11 @@ if __name__ == "__main__":
     bounding_box_folder = Output_dir + 'Prediction/'
     print('-' * 100)
     print ('Training NN architecture = ', nnArchitecture)
-    
-    timestampTime = time.strftime("%H%M%S")
-    timestampDate = time.strftime("%d%m%Y")
-    timestampLaunch = timestampDate + '-' + timestampTime
     pathModel = Output_dir
     
     vein = VeinNetTrainer(gpu)
 
     vein.training(pathDirData, pathModel, nnArchitecture, args.nnIsTrained, 
                 nnInChanCount, nnClassCount, trBatchSize, 
-                trMaxEpoch, loss_weights, timestampLaunch, args.checkpoint,
-                args.vein_loss, cropped_fldr, bounding_box_folder)
+                trMaxEpoch, loss_weights, checkpoint,
+                vein_loss, cropped_fldr, bounding_box_folder)

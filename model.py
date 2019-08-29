@@ -11,9 +11,18 @@ import User_defined_model
 def load_model (nnArchitecture, nnIsTrained, 
                 nnInChanCount, nnClassCount, gpu = True):
     
-    if nnArchitecture == 'resnet18': model = models.resnet18(nnClassCount, nnIsTrained)
-    elif nnArchitecture == 'resnet34': model = models.resnet34(nnClassCount, nnIsTrained)
-    elif nnArchitecture == 'resnet50': model = models.resnet50(nnClassCount, nnIsTrained)
+    if nnArchitecture == 'resnet18': 
+        model = models.resnet18(nnClassCount, nnIsTrained)
+        num_ftrs = model.fc.in_features
+        model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
+    elif nnArchitecture == 'resnet34': 
+        model = models.resnet34(nnClassCount, nnIsTrained)
+        num_ftrs = model.fc.in_features
+        model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
+    elif nnArchitecture == 'resnet50': 
+        model = models.resnet50(nnClassCount, nnIsTrained)
+        num_ftrs = model.fc.in_features
+        model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
     elif nnArchitecture == 'alexnet': model = models.alexnet(nnClassCount, nnIsTrained)
     elif nnArchitecture == 'vgg19': model = models.vgg19(nnClassCount, nnIsTrained)
     elif nnArchitecture == 'DENSE-NET-121': 
@@ -25,14 +34,9 @@ def load_model (nnArchitecture, nnIsTrained,
     elif nnArchitecture == 'DENSE-NET-201': 
         from DensenetModels import DenseNet201
         model = DenseNet201(nnClassCount, nnIsTrained)
-        # # Remove the sigmoid layer
-        # model.densenet201.classifier = model.densenet201.classifier[:1]
-        # # Add a relu layer 
-        # model.densenet201.classifier.add_module('1', torch.nn.ReLU())
     elif nnArchitecture == 'mine': model = User_defined_model.SimpleCNN()
+    elif nnArchitecture == "RakibNET": model = User_defined_model.RakibNET()
     
-    # num_ftrs = model.fc.in_features
-    # model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
     #model.classifier._modules['6'] = torch.nn.Linear(4096, nnClassCount)
 
     # # let's make our model work with channels we want
