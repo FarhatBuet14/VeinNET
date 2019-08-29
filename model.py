@@ -15,14 +15,17 @@ def load_model (nnArchitecture, nnIsTrained,
         model = models.resnet18(nnClassCount, nnIsTrained)
         num_ftrs = model.fc.in_features
         model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
+        model.classifier = torch.nn.Sequential(torch.nn.ReLU())
     elif nnArchitecture == 'resnet34': 
         model = models.resnet34(nnClassCount, nnIsTrained)
         num_ftrs = model.fc.in_features
         model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
+        model.classifier = torch.nn.Sequential(torch.nn.ReLU())
     elif nnArchitecture == 'resnet50': 
         model = models.resnet50(nnClassCount, nnIsTrained)
         num_ftrs = model.fc.in_features
         model.fc = torch.nn.Linear(num_ftrs, nnClassCount)
+        model.classifier = torch.nn.Sequential(torch.nn.ReLU())
     elif nnArchitecture == 'alexnet': model = models.alexnet(nnClassCount, nnIsTrained)
     elif nnArchitecture == 'vgg19': model = models.vgg19(nnClassCount, nnIsTrained)
     elif nnArchitecture == 'DENSE-NET-121': 
@@ -53,7 +56,7 @@ def load_model (nnArchitecture, nnIsTrained,
     
     if(gpu):
         model = model.cuda()
-    
+
     # # Freeze model weights
     for param in model.parameters():
         param.requires_grad = True
