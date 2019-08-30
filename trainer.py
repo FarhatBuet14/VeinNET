@@ -184,7 +184,7 @@ class VeinNetTrainer():
             # Save the minimum validation point data
             if lossVal < lossMIN:
                 lossMIN = lossVal
-                path = pathModel + '_____' + str(lossTrain) + '_____' + str(lossVal.item()) + str(lossTrain_v) + '_____' + str(lossVal_v.item()) + '.pth.tar'
+                path = pathModel + '_____' + str(lossTrain) + '_____' + str(lossVal.item()) + '_____' + str(lossTrain_v) + '_____' + str(lossVal_v.item()) + '.pth.tar'
                 torch.save({'epoch': epochID + 1, 'state_dict': training_model.state_dict(), 
                             'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, path)
                 print ('Epoch [' + str(epochID + 1) + '] [save]')
