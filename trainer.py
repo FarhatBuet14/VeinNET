@@ -96,6 +96,7 @@ class VeinNetTrainer():
         model.eval ()
         runningLoss = 0
         runningLoss_v = 0
+        runningTotalLoss = 0
         with torch.no_grad():
             for batchID, (input, target, img_name) in enumerate (dataLoader):
                 
@@ -114,17 +115,15 @@ class VeinNetTrainer():
                                 vein_loss, vein_loss_class, 
                                 loss_weights).type(torch.FloatTensor)
             
-                # Calculate loss explicitly
-                loss_p = loss_class.point_loss_value
-                loss_v = loss_class.vein_loss_value
-
-                runningLoss += loss_p
-                runningLoss_v += loss_v
+                runningLoss += loss_class.point_loss_value
+                runningLoss_v += loss_class.vein_loss_value
+                runningTotalLoss += loss
         
             runningLoss = runningLoss/len(dataLoader)
             runningLoss_v = runningLoss_v/len(dataLoader)
+            runningTotalLoss = runningTotalLoss/len(dataLoader)
             
-        return loss, runningLoss, runningLoss_v
+        return runningTotalLoss, runningLoss, runningLoss_v
     
     ######################### Train Function #########################
     ##################################################################
@@ -155,7 +154,7 @@ class VeinNetTrainer():
         optimizer = optim.Adam(training_model.parameters(), lr=1e-3, betas=(0.9, 0.999), 
                                 eps=1e-08, weight_decay=1e-5)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, 
-                                                    patience=5, verbose=False, threshold=0.0001, 
+                                                    patience=5, verbose=True, threshold=0.0001, 
                                                     threshold_mode='rel', cooldown=0, min_lr=0, 
                                                     eps=1e-08)
                 
@@ -183,9 +182,9 @@ class VeinNetTrainer():
             scheduler.step(totalLossVal.data)
             
             # Save the minimum validation point data
-            if totalLossVal < lossMIN:
-                lossMIN = totalLossVal
-                path = pathModel + '_ltr_' + str(totalLossTrain) + '_lvl_' + str(totalLossVal.item()) + '.pth.tar'
+            if lossVal < lossMIN:
+                lossMIN = lossVal
+                path = pathModel + '_____' + str(lossTrain) + '_____' + str(lossVal.item()) + str(lossTrain_v) + '_____' + str(lossVal_v.item()) + '.pth.tar'
                 torch.save({'epoch': epochID + 1, 'state_dict': training_model.state_dict(), 
                             'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, path)
                 print ('Epoch [' + str(epochID + 1) + '] [save]')
@@ -249,7 +248,7 @@ if __name__ == "__main__":
     if args.trMaxEpoch:
         trMaxEpoch = args.trMaxEpoch
     else:
-        trMaxEpoch = 100
+        trMaxEpoch = 50
     if args.trBatchSize:
         trBatchSize = args.trBatchSize
     else:
