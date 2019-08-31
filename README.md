@@ -26,26 +26,34 @@ This project is to detect the dorsal vein using an infrared illuminator and then
 	- SeedlingDataset
     	- get_processed
 	- dataset_builder
+	- load_checkpoint
 
 2. losses.py
 	- Cal_loss 
 		- mae
 		- mse
-		- calculate
-	- Vein_loss_class
-		- get_vein_img
-		- cal_vein_loss
 
-3. model.py
+3. Vein_loss_class
+	- get_vein_img
+
+4. model.py
 	- load_model
+	
+5. DensenetModel.py
+	- DenseNet121
+	- DenseNet169
+	- DenseNet201
+
+6. User_defined_model.py
 	- SimpleCNN
+	- RakibNET
  	
-4. trainer.py
+5. trainer.py
 	- VeinNetTrainer
 		- epochTrain
 		- epochVal
 		- training
 
-5. test.py
+6. test.py
 	- VeinVetTester
 		- testing
