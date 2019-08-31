@@ -1,9 +1,5 @@
 #############################  IMPORT LIBRARIES  ############################
 import numpy as np
-import time
-import pandas as pd
-from os.path import join
-from PIL import Image
 import cv2
 import math
 import imgaug.augmenters as iaa
@@ -11,18 +7,7 @@ import re
 import imutils
 
 import torch
-import torch.backends.cudnn as cudnn
-from torchsummary import summary
 from torch.autograd import Variable
-from torch.utils.data import Dataset, DataLoader
-import torch.nn.functional as func
-from torchvision import transforms, datasets, models
-import torch.optim as optim
-from torch.optim import lr_scheduler
-from torch.nn import Module
-
-import veinloss
-
 
 ######################### Custom Vein Loss #########################
 ####################################################################
@@ -36,13 +21,32 @@ class Vein_loss_class(torch.nn.Module):
         self.height = 90
         self.width = 70
         self.th = 10
-        self.thresh_h = 200
+        self.thresh_h = 200 
         self.thresh_l = 70
 
-    def get_vein_img(self, save_vein_pic = False,
+    def get_vein_img(self, save_vein_pic = True,
                     save_bb = True):
         crop = []
         for sample in range(0, self.total_input): 
+            
+             # Error removing for augmented data---------------------
+            file, point, point_pred = str(self.img_name[sample]), self.output[sample], self.target[sample]
+            if(file.find('_flrot_') != -1):
+                point1 = np.array(point[0:2])
+                point2 = np.array(point[2:4])
+                point_changed = []
+                point_changed.append(point2)
+                point_changed.append(point1)
+                self.output[sample] = np.array(point_changed).reshape((1, 4))
+
+                point1 = np.array(point_pred[0:2])
+                point2 = np.array(point_pred[2:4])
+                point_changed = []
+                point_changed.append(point2)
+                point_changed.append(point1)
+                self.target[sample] = np.array(point_changed).reshape((1, 4))
+            # -------------------------------------------------------
+            
             top_left = self.output[sample, 0:2]
             top_right = self.output[sample, 2:4]
             
@@ -54,14 +58,23 @@ class Vein_loss_class(torch.nn.Module):
             points_pred = (self.output[sample]).reshape((1, 2, 2))
             points_test = (self.target[sample]).reshape((1, 2, 2))
             image = cv2.imread(self.data_folder + self.img_name[sample])
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-            image = image.reshape((1, 240, 300))
+            # image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+            image = image.reshape((1, 240, 300, 3))
             image_rotated , keypoints_pred_rotated = iaa.Affine(rotate=-angle)(images=image, 
                                         keypoints=points_pred)
             _ , keypoints_test_rotated = iaa.Affine(rotate=-angle)(images=image, 
                                         keypoints=points_test)
             
-            image_rotated = image_rotated.reshape((240, 300))
+            # Check if the image is fully rotated that left goes to the right side of hand
+            if(keypoints_pred_rotated[0, 0, 0] > keypoints_pred_rotated[0, 1, 0]):
+                # Again rotate the picture to 180 with the points
+                image = image_rotated
+                image_rotated , keypoints_pred_rotated = iaa.Affine(rotate=180)(images=image, 
+                                        keypoints=keypoints_pred_rotated)
+                _ , keypoints_test_rotated = iaa.Affine(rotate=180)(images=image, 
+                                            keypoints=keypoints_test_rotated)
+
+            image_rotated = image_rotated.reshape((240, 300, 3))
             keypoints_pred_rotated = keypoints_pred_rotated.reshape((2, 2))
             keypoints_test_rotated = keypoints_test_rotated.reshape((2, 2))
             
@@ -130,8 +143,12 @@ class Vein_loss_class(torch.nn.Module):
         for sample in range(0, self.total_input):
             accu = ((vein_image[sample] <= self.thresh_h)  & (vein_image[sample] >= self.thresh_l))
             true = np.count_nonzero(accu)
-            false = (accu.shape[0] * accu.shape[1]) - true
+            false = (accu.shape[0] * accu.shape[1] * accu.shape[2]) - true
             vein_loss += Variable(torch.tensor((false / (false + true))), requires_grad=True)
         vein_loss = vein_loss / self.total_input
         
         return vein_loss * 100
+
+if __name__ == "__main__":
+    pass
+    # main()
