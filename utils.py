@@ -6,6 +6,7 @@ from PIL import Image
 import cv2
 import re
 import imutils
+import os
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -123,6 +124,28 @@ def dataset_builder(pathDirData, mode = 'Train'):
     else:
         return data_df
 
+######################### Load Checkpoint ########################
+##################################################################
+
+def load_checkpoint(model, optimizer, losslogger, filename='checkpoint.pth.tar'):
+    # Note: Input model & optimizer should be pre-defined.  This routine only updates their states.
+    start_epoch = 0
+    if os.path.isfile(filename):
+        print('-' * 100)
+        print("=> loading checkpoint '{}'".format(filename))
+        checkpoint = torch.load(filename)
+        start_epoch = checkpoint['epoch']
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        losslogger = checkpoint['best_loss']
+        print("=> loaded checkpoint '{}' (epoch {})"
+                  .format(filename, checkpoint['epoch']))
+        print('-' * 100)
+    else:
+        print('-' * 100)
+        print("=> no checkpoint found at '{}'".format(filename))
+
+    return model, optimizer, start_epoch, losslogger
 
 if __name__ == "__main__":
     pass
