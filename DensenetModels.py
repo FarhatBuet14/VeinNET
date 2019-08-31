@@ -59,5 +59,7 @@ class DenseNet201(nn.Module):
         x = self.densenet201(x)
         return x
 
-
+if __name__ == "__main__":
+    pass
+    # main()
         
