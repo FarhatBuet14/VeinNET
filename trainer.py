@@ -118,6 +118,7 @@ class VeinNetTrainer():
                 runningLoss += loss_class.point_loss_value
                 runningLoss_v += loss_class.vein_loss_value
                 runningTotalLoss += loss
+                    
         
             runningLoss = runningLoss/len(dataLoader)
             runningLoss_v = runningLoss_v/len(dataLoader)
@@ -134,8 +135,13 @@ class VeinNetTrainer():
                 checkpoint = None, vein_loss = False, 
                 cropped_fldr = None, bounding_box_folder = None):
         
-        training_model = model.load_model(nnArchitecture, nnIsTrained, 
-                                        nnInChanCount, nnClassCount, self.gpu)
+        import model
+        if(checkpoint):
+            training_model = model.load_model(nnArchitecture, nnIsTrained, 
+                                            nnInChanCount, nnClassCount, False)
+        else:
+            training_model = model.load_model(nnArchitecture, nnIsTrained, 
+                                            nnInChanCount, nnClassCount, self.gpu)
 
         #-------------------- SETTINGS: DATASET BUILDERS
         trans_pipeline = transforms.Compose([transforms.ToTensor(),
@@ -164,9 +170,22 @@ class VeinNetTrainer():
   
         #---- TRAIN THE NETWORK
         lossMIN = 100000
+        start_epoch = 0
+        # Load the checkpoint
+        if(checkpoint):
+            training_model, optimizer, start_epoch, lossMIN = utils.load_checkpoint(training_model, optimizer, 
+                                                                                    lossMIN, checkpoint)
+            training_model = training_model.cuda()
+            
+            # now individually transfer the optimizer parts...
+            for state in optimizer.state.values():
+                for k, v in state.items():
+                    if isinstance(v, torch.Tensor):
+                        state[k] = v.to(torch.device('cuda'))
+        
         print('-' * 50 + 'Start Training' + '-' * 50)
 
-        for epochID in range (0, trMaxEpoch):
+        for epochID in range (start_epoch, trMaxEpoch):
 
             totalLossTrain, lossTrain, lossTrain_v = self.epochTrain (training_model, train_loader, optimizer, 
                                     scheduler, trBatchSize, trMaxEpoch, nnClassCount, 
@@ -184,7 +203,7 @@ class VeinNetTrainer():
             # Save the minimum validation point data
             if lossVal < lossMIN:
                 lossMIN = lossVal
-                path = pathModel + '_____' + str(lossTrain) + '_____' + str(lossVal.item()) + '_____' + str(lossTrain_v) + '_____' + str(lossVal_v.item()) + '.pth.tar'
+                path = pathModel + str(epochID + 1) + '_____' + str(lossTrain) + '_____' + str(lossVal.item()) + '_____' + str(lossTrain_v) + '_____' + str(lossVal_v.item()) + '.pth.tar'
                 torch.save({'epoch': epochID + 1, 'state_dict': training_model.state_dict(), 
                             'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, path)
                 print ('Epoch [' + str(epochID + 1) + '] [save]')
@@ -244,11 +263,11 @@ if __name__ == "__main__":
     if(args.nnArchitecture):
         nnArchitecture = args.nnArchitecture
     else:
-        nnArchitecture = "resnet18"
+        nnArchitecture = "resnet50"
     if args.trMaxEpoch:
         trMaxEpoch = args.trMaxEpoch
     else:
-        trMaxEpoch = 50
+        trMaxEpoch = 100
     if args.trBatchSize:
         trBatchSize = args.trBatchSize
     else:
@@ -282,17 +301,18 @@ if __name__ == "__main__":
     else:
         gpu = True
     if(args.nnIsTrained):
-        nnIsTrained = True
+        nnIsTrained = args.nnIsTrained
     else:
-        nnIsTrained = False
+        nnIsTrained = True
     if(args.vein_loss):
         vein_loss = args.vein_loss
     else:
         vein_loss = True
     if(args.checkpoint):
-        checkpoint = True
+        checkpoint = args.checkpoint
     else:
         checkpoint = False
+        # checkpoint = Output_dir + 'Best Model/' + 56_____1.8378423690795898_____2.3537027835845947_____12.9650634765625_____14.112624168395996.pth.tar
 
 
     cropped_fldr = Output_dir + 'Cropped/'
