@@ -1,31 +1,14 @@
 #############################  IMPORT LIBRARIES  ############################
 import numpy as np
-import time
-import pandas as pd
-from os.path import join
-from PIL import Image
-import cv2
-import math
-import imgaug.augmenters as iaa
-import re
-import imutils
-
 import torch
-import torch.backends.cudnn as cudnn
-from torchsummary import summary
-from torch.autograd import Variable
-from torch.utils.data import Dataset, DataLoader
-import torch.nn.functional as func
-from torchvision import transforms, datasets, models
-import torch.optim as optim
-from torch.optim import lr_scheduler
-from torch.nn import Module
+
+import veinloss
 
 ######################### MAE/MSE Loss #########################
 ################################################################
 
 class Cal_loss(torch.nn.Module):
-    def __init__(self, loss_type):
+    def __init__(self, loss_type): 
         super(Cal_loss, self).__init__()
         self.loss_type = loss_type
     
