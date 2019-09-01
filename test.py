@@ -6,13 +6,13 @@ import argparse
 from tqdm import tqdm
 
 import torch
-import torch.backends.cudnn as cudnn  
+import torch.backends.cudnn as cudnn   
 from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms 
 import torch.nn.functional as func
 
-import utils, losses, model
+import utils, losses, veinloss , model
 
 #######################  Define VeinBetTrainer Class  #########################
 
@@ -37,7 +37,7 @@ class VeinNetTester():
     
     def testing(self, pathFileTest, pathModel, nnArchitecture, 
                 nnInChanCount, nnClassCount, nnIsTrained, 
-                trBatchSize, loss_weights, vein_loss, 
+                trBatchSize, loss_weights, vein_loss,
                 cropped_fldr, bounding_box_folder):
         
         cudnn.benchmark = True
@@ -50,44 +50,57 @@ class VeinNetTester():
         test_model.load_state_dict(modelCheckpoint['state_dict'])
 
         #-------------------- SETTINGS: DATASET BUILDERS
-        trans = transforms.Compose([transforms.ToTensor()])
+        trans_pipeline = transforms.Compose([transforms.ToTensor(),
+                                            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
         test_data = utils.dataset_builder(pathFileTest, 'Test')
         test_set = utils.SeedlingDataset(test_data, pathFileTest,
-                                    transform = trans, normalize = True)
-
+                                    trans_pipeline = trans_pipeline, normalize = True)
         test_loader = DataLoader(test_set, batch_size = trBatchSize, shuffle = True)
 
-        loss_class = losses.Cal_loss(loss_type = 'mse')
+        loss_class = losses.Cal_loss(loss_type = 'mae')
+        vein_loss_class = veinloss.Vein_loss_class(cropped_fldr, bounding_box_folder, pathFileTest)
         test_model.eval() 
         
         #-------------------- TESTING BEIGINS
         print('-' * 50 + 'Start Testing' + '-' * 50)
         print('-' * 113)
-        loss = 0
-        loss_v = 0
+        
+        runningLoss = 0
+        runningLoss_v = 0
+        runningTotalLoss = 0
         with torch.no_grad():
             loader = tqdm(test_loader, total=len(test_loader))
-            for batchID, (input, target, img_name) in enumerate(loader):
+            for batchID, (input, target, img_name) in enumerate (loader):
                 id = target[:, 0]
                 target = target[:, 1:]
-                varInput = torch.autograd.Variable(input.cuda())
-                varOutput = test_model(varInput)
-                output = (Variable(varOutput).data).cpu()
-
-                # loss += func.mse_loss(output, target)
-                loss += loss_class.calculate(target, output)
-                if(vein_loss):
-                    vein_loss_class = losses.Vein_loss_class(target, output, img_name,
-                                                            input, cropped_fldr,
-                                                            bounding_box_folder, 
-                                                            pathFileTest, id)
-                    _ = vein_loss_class.get_vein_img()
-                    loss_v += vein_loss_class.cal_vein_loss()
-            loss = loss / len(test_loader)
+                if(self.gpu):
+                    input = input.type(torch.FloatTensor).to(device = torch.device('cuda'))
+                    target = target.float().to(device = torch.device('cuda'))
+                else:
+                    input = input.type(torch.DoubleTensor),
+                    target = target.float()
+                
+                output = test_model(input)
+                # loss = func.mse_loss(output, target)
+                loss = loss_class(target, output, input, img_name, id,
+                                vein_loss, vein_loss_class, 
+                                loss_weights).type(torch.FloatTensor)
+            
+                runningLoss += loss_class.point_loss_value
+                runningLoss_v += loss_class.vein_loss_value
+                runningTotalLoss += loss
+        
+            runningLoss = runningLoss/len(test_loader)
+            runningLoss_v = runningLoss_v/len(test_loader)
+            runningTotalLoss = runningTotalLoss/len(test_loader)
+        
         # Print the losses
-        print('Test_loss= ' + str(loss.data))
+        print('Test_loss   = ' + str(np.array(runningTotalLoss.cpu())))
+        print('-' * 20)
         if(vein_loss):
-            print('Test_loss_vein= ' + str(loss_v))
+            print('Test_loss_point   = ' + str(runningLoss.item()))
+            print('-' * 20)
+            print('Test_loss_vein   = ' + str(runningLoss_v.item()))
         
         print('-' * 50 + 'Finished Testing' + '-' * 50)
         print('-' * 113)
@@ -140,7 +153,7 @@ if __name__ == "__main__":
     if args.pathModel:
         test_pathModel = args.pathModel
     else:
-        test_pathModel = "t_29072019-010056_ltr_tensor(20448.8496)_lvl_tensor(17930.2539).pth.tar"
+        test_pathModel = "80_____1.3003313064575195_____2.231361150741577_____0.1930376648902893_____0.35036614537239075.pth.tar"
     test_pathModel = Output_dir + test_pathModel
     if args.nnInChanCount:
         nnInChanCount = args.nnInChanCount
@@ -159,20 +172,20 @@ if __name__ == "__main__":
     else:
         loss_weights = [1, 1]
     if(args.gpu):
+        gpu = args.gpu
+    else:
         gpu = True
-    else:
-        gpu = False
     if(args.vein_loss):
-        vein_loss = True
+        vein_loss = args.vein_loss
     else:
-        vein_loss = False
-    if(args.nnIsTrained):
-        nnIsTrained = True
+        vein_loss = True
+    if(args.nnIsTrained): 
+        nnIsTrained = args.nnIsTrained
     else:
         nnIsTrained = False
 
-    cropped_fldr = Output_dir + 'Cropped/'
-    bounding_box_folder = Output_dir + 'Prediction/'
+    cropped_fldr = Output_dir + 'Cropped/Test/'
+    bounding_box_folder = Output_dir + 'Prediction/Test/'
     print('-' * 100)
     print ('Training NN architecture = ', nnArchitecture)
 
