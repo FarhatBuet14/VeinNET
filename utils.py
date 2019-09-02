@@ -24,6 +24,34 @@ def get_ID(img_names):
         
     return IDs
 
+##################### Train/Validation Split  ####################
+##################################################################
+
+def Train_Validation_Split(X_train_names, y_train, ID, split_factor = float(2/3)):
+    X_names = []
+    X_val_names = []
+    y = []
+    y_val = []
+
+    # Splitting IDs for Train-Validation Splitting
+    ID_a = np.array(list(dict.fromkeys(ID)))
+    randomize = np.arange(len(ID_a))
+    np.random.shuffle(randomize)
+    ID_a = ID_a[randomize]
+    slices = int(len(ID_a) * split_factor)
+    ID_train = list(ID_a[:slices])
+    ID_val = list(ID_a[slices:])
+
+    for sample in range(0, len(X_train_names)):
+        if(ID[sample] in ID_train):
+            X_names.append(X_train_names[sample])
+            y.append(y_train[sample])
+        elif(ID[sample] in ID_val):
+            X_val_names.append(X_train_names[sample])
+            y_val.append(y_train[sample])
+        
+    return np.array(X_names), np.array(X_val_names), np.array(y), np.array(y_val)
+
 ######################### Data Generator #########################
 ##################################################################
 
@@ -88,7 +116,7 @@ def dataset_builder(pathDirData, mode = 'Train'):
     
     if(mode == 'Train'):
         # Import Main Data
-        data = np.load(pathDirData + 'train_test_data_without_augmetation.npz') 
+        data = np.load(pathDirData + 'Train_data_without_augmentation.npz') 
         X_names = data['X_train_names'].astype(str)
         y = data['y_train']
 
@@ -100,10 +128,15 @@ def dataset_builder(pathDirData, mode = 'Train'):
         # Concatenate main data and augmented data
         X_names = np.concatenate((X_names, X_train_aug_names), axis = 0)
         y = np.concatenate((y, y_train_aug), axis = 0)
-    
+
+        ID = get_ID(X_names)
+        split_factor = float(2/3)
+        
+        X_names, X_val_names, y, y_val = Train_Validation_Split(X_names, y, ID, split_factor)
+
     if(mode == 'Test'):
         # Import Main Data
-        data = np.load(pathDirData + 'train_test_data_without_augmetation.npz') 
+        data = np.load(pathDirData + 'Test_data.npz') 
         X_names = data['X_test_names'].astype(str)
         y = data['y_test']
 
@@ -116,11 +149,19 @@ def dataset_builder(pathDirData, mode = 'Train'):
 
     data_df = pd.DataFrame(data, columns=['file_name', 'id', 'point_1x', 
                                         'point_1y', 'point_2x', 'point_2y']) 
+    
 
     if(mode == 'Train'):
-        train_data = data_df.sample(frac=0.7)
-        valid_data = data_df[~data_df['file_name'].isin(train_data['file_name'])]
-        return train_data, valid_data
+        ID = get_ID(X_val_names)
+        data = []
+        for index in range(0, len(X_val_names)):
+            data.append([X_val_names[index], ID[index], y_val[index, 0], y_val[index, 1],
+                            y_val[index, 2], y_val[index, 3]])
+        
+        val_data = pd.DataFrame(data, columns=['file_name', 'id', 'point_1x', 
+                                                'point_1y', 'point_2x', 'point_2y']) 
+        return data_df, val_data
+    
     else:
         return data_df
 
