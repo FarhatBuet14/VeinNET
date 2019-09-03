@@ -2,6 +2,7 @@
 *.npz
 *.h5
 *.ini
+*.json
 */Before/*
 Before/*
 */Model_Output/*
