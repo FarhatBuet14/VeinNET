@@ -140,11 +140,20 @@ class Vein_loss_class(torch.nn.Module):
         vein_image = self.get_vein_img()
         vein_loss = 0
         # Calculate loss from extracted Vein Image
+        loss_logger = []
+        names = []
         for sample in range(0, self.total_input):
             accu = ((vein_image[sample] <= self.thresh_h)  & (vein_image[sample] >= self.thresh_l))
             true = np.count_nonzero(accu)
             false = (accu.shape[0] * accu.shape[1] * accu.shape[2]) - true
-            vein_loss += Variable(torch.tensor((false / (false + true))), requires_grad=True)
+            loss = Variable(torch.tensor((false / (false + true))), requires_grad=True)
+            vein_loss += loss
+            loss_logger.append(loss)
+            names.append(self.img_name[sample])
+
+        self.loss_logger = loss_logger
+        self.names = names
+
         vein_loss = vein_loss / self.total_input
         
         return vein_loss * 100

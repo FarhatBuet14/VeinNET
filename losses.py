@@ -27,6 +27,9 @@ class Cal_loss(torch.nn.Module):
         total_loss = w_point * self.point_loss_value
         if(vein_loss_class):
             self.vein_loss_value = vein_loss_class(target, pred, input, img_name, id)
+            self.loss_logger = vein_loss_class.loss_logger
+            self.names = vein_loss_class.names
+
             total_loss += w_veinLoss * self.vein_loss_value
         
         return total_loss

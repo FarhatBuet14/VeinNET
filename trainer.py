@@ -199,6 +199,9 @@ class VeinNetTrainer():
         
         print('-' * 50 + 'Start Training' + '-' * 50)
 
+        loss_epoch = []
+        loss_logger = []
+
         for epochID in range (start_epoch, trMaxEpoch):
 
             totalLossTrain, lossTrain, lossTrain_v = self.epochTrain (training_model, train_loader, optimizer, 
@@ -209,6 +212,9 @@ class VeinNetTrainer():
             tb.add_scalar('Train_loss', totalLossTrain, epochID + 1)
             tb.add_scalar('Train_loss_point', lossTrain, epochID + 1)
             tb.add_scalar('Train_loss_vein', lossTrain_v, epochID + 1)
+            loss_epoch.append(totalLossTrain)
+            loss_epoch.append(lossTrain)
+            loss_epoch.append(lossTrain_v)
 
             totalLossVal, lossVal, lossVal_v = self.epochVal (training_model, valid_loader, optimizer, 
                                             scheduler, trBatchSize, trMaxEpoch, 
@@ -219,19 +225,25 @@ class VeinNetTrainer():
             tb.add_scalar('Val_loss', totalLossVal, epochID + 1)
             tb.add_scalar('Val_loss_point', lossVal, epochID + 1)
             tb.add_scalar('Val_loss_vein', lossVal_v, epochID + 1)
+            loss_epoch.append(totalLossVal)
+            loss_epoch.append(lossVal)
+            loss_epoch.append(lossVal_v)
 
             # tb.add_histogram('conv1.bias', training_model.conv1.bias, epochID + 1)
             # tb.add_histogram('conv1.weight', training_model.conv1.weight, epochID + 1)
             # tb.add_histogram('conv1.weight.grad', training_model.conv1.weight.grad, epochID + 1)
             
+            loss_logger.append(loss_epoch)
+
             scheduler.step(totalLossVal.data)
             
             # Save the minimum validation point data
-            if lossVal < lossMIN :
+            if lossVal < lossMIN : 
                 lossMIN = lossVal
                 path = pathModel + str(epochID + 1) + '_____' + str(lossTrain) + '_____' + str(lossVal.item()) + '_____' + str(lossTrain_v) + '_____' + str(lossVal_v.item()) + '.pth.tar'
                 torch.save({'epoch': epochID + 1, 'state_dict': training_model.state_dict(), 
-                            'best_loss': lossMIN, 'optimizer' : optimizer.state_dict()}, path)
+                            'best_loss': lossMIN, 'optimizer' : optimizer.state_dict(), 
+                            'loss_logger' : loss_epoch }, path)
                 print ('Epoch [' + str(epochID + 1) + '] [save]')
             else:
                 print ('Epoch [' + str(epochID + 1) + '] [----]')
@@ -248,6 +260,7 @@ class VeinNetTrainer():
                 print('Val_loss_vein   = ' + str(lossVal_v.item()))
         
         tb.close()
+        np.savez(Output_dir + 'loss_logger.npz', loss_logger = np.array(loss_logger))
         print('-' * 50 + 'Finished Training' + '-' * 50)
 
 
@@ -294,7 +307,7 @@ if __name__ == "__main__":
     if args.trMaxEpoch:
         trMaxEpoch = args.trMaxEpoch
     else:
-        trMaxEpoch = 5
+        trMaxEpoch = 150
     if args.trBatchSize:
         trBatchSize = args.trBatchSize
     else:
@@ -302,7 +315,7 @@ if __name__ == "__main__":
     if args.pathDirData:
         pathDirData = args.pathDirData
     else:
-        pathDirData = "./Data/Full X_train_data/"
+        pathDirData = "./Data/Train/"
     if args.Output_dir:
         Output_dir = args.Output_dir
     else:
@@ -338,8 +351,8 @@ if __name__ == "__main__":
     if(args.checkpoint):
         checkpoint = args.checkpoint
     else:
-        checkpoint = False
-        # checkpoint = Output_dir + 'Best Model/' + 80_____1.3003313064575195_____2.231361150741577_____0.1930376648902893_____0.35036614537239075.pth.tar
+        # checkpoint = False
+        checkpoint = Output_dir + 'Best Model/' + '113_____1.499423033439073_____3.188467502593994_____0.5486444562873585_____0.47552916407585144.pth.tar'
 
 
     cropped_fldr = Output_dir + 'Cropped/'

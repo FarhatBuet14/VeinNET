@@ -35,7 +35,7 @@ class VeinNetTester():
     ########################## Test Function #########################
     ##################################################################
     
-    def testing(self, pathFileTest, pathModel, nnArchitecture, 
+    def testing(self, pathFileTest, pathModel, Output_dir, nnArchitecture, 
                 nnInChanCount, nnClassCount, nnIsTrained, 
                 trBatchSize, loss_weights, vein_loss,
                 cropped_fldr, bounding_box_folder):
@@ -68,9 +68,14 @@ class VeinNetTester():
         runningLoss = 0
         runningLoss_v = 0
         runningTotalLoss = 0
+        loss_logger = []
+        names = []
+        batch_loss_logger = []
         with torch.no_grad():
+            
             loader = tqdm(test_loader, total=len(test_loader))
             for batchID, (input, target, img_name) in enumerate (loader):
+                batch_loss = []
                 id = target[:, 0]
                 target = target[:, 1:]
                 if(self.gpu):
@@ -85,6 +90,14 @@ class VeinNetTester():
                 loss = loss_class(target, output, input, img_name, id,
                                 vein_loss, vein_loss_class, 
                                 loss_weights).type(torch.FloatTensor)
+
+                # Loss Logger
+                loss_logger.append(loss_class.loss_logger)
+                names.append(loss_class.names)
+                batch_loss.append(loss_class.point_loss_value)
+                batch_loss.append(loss_class.vein_loss_value)
+                batch_loss.append(loss)
+                batch_loss_logger.append(batch_loss)
             
                 runningLoss += loss_class.point_loss_value
                 runningLoss_v += loss_class.vein_loss_value
@@ -94,14 +107,25 @@ class VeinNetTester():
             runningLoss_v = runningLoss_v/len(test_loader)
             runningTotalLoss = runningTotalLoss/len(test_loader)
         
+        # Accuracy Calculation
+        loss_logger = np.array(loss_logger)
+        loss_logger = (loss_logger < 0.02)
+        accuracy = (np.sum(loss_logger) / 600 ) * 100
+
         # Print the losses
-        print('Test_loss   = ' + str(np.array(runningTotalLoss.cpu())))
+        print('Test_loss      = ' + str(np.array(runningTotalLoss.cpu())))
+        print('Test_accurcy   = ' + str(accuracy))
         print('-' * 20)
         if(vein_loss):
             print('Test_loss_point   = ' + str(runningLoss.item()))
             print('-' * 20)
             print('Test_loss_vein   = ' + str(runningLoss_v.item()))
-        
+
+        np.savez(Output_dir + "Loss_logger_test.npz",
+                loss_logger = loss_logger,
+                names = names,
+                batch_loss_logger = batch_loss_logger)
+
         print('-' * 50 + 'Finished Testing' + '-' * 50)
         print('-' * 113)
 
@@ -145,7 +169,7 @@ if __name__ == "__main__":
     if args.pathDirData:
         pathFileTest = args.pathDirData
     else:
-        pathFileTest = "./Data/Test_data/"
+        pathFileTest = "./Data/Test/"
     if args.Output_dir:
         Output_dir = args.Output_dir
     else:
@@ -153,7 +177,7 @@ if __name__ == "__main__":
     if args.pathModel:
         test_pathModel = args.pathModel
     else:
-        test_pathModel = "80_____1.3003313064575195_____2.231361150741577_____0.1930376648902893_____0.35036614537239075.pth.tar"
+        test_pathModel = "113_____1.499423033439073_____3.188467502593994_____0.5486444562873585_____0.47552916407585144.pth.tar"
     test_pathModel = Output_dir + test_pathModel
     if args.nnInChanCount:
         nnInChanCount = args.nnInChanCount
@@ -190,8 +214,7 @@ if __name__ == "__main__":
     print ('Training NN architecture = ', nnArchitecture)
 
     vein = VeinNetTester(gpu)
-    vein.testing(pathFileTest, test_pathModel, nnArchitecture, 
+    vein.testing(pathFileTest, test_pathModel, Output_dir, nnArchitecture, 
                 nnInChanCount, nnClassCount, nnIsTrained, 
                 trBatchSize, loss_weights, vein_loss, 
                 cropped_fldr, bounding_box_folder)
-   
