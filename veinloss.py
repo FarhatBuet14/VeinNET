@@ -57,9 +57,11 @@ class Vein_loss_class(torch.nn.Module):
             # Rotate the image to cut rectangle from the images
             points_pred = (self.output[sample]).reshape((1, 2, 2))
             points_test = (self.target[sample]).reshape((1, 2, 2))
-            image = cv2.imread(self.data_folder + self.img_name[sample])
+            img = cv2.imread(self.data_folder + self.img_name[sample])
             # image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-            image = image.reshape((1, 240, 300, 3))
+            image = []
+            image.append(img)
+            image = np.array(image)
             image_rotated , keypoints_pred_rotated = iaa.Affine(rotate=-angle)(images=image, 
                                         keypoints=points_pred)
             _ , keypoints_test_rotated = iaa.Affine(rotate=-angle)(images=image, 
@@ -74,7 +76,7 @@ class Vein_loss_class(torch.nn.Module):
                 _ , keypoints_test_rotated = iaa.Affine(rotate=180)(images=image, 
                                             keypoints=keypoints_test_rotated)
 
-            image_rotated = image_rotated.reshape((240, 300, 3))
+            image_rotated = image_rotated[0]
             keypoints_pred_rotated = keypoints_pred_rotated.reshape((2, 2))
             keypoints_test_rotated = keypoints_test_rotated.reshape((2, 2))
             
