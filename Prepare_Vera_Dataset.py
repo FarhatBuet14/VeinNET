@@ -26,18 +26,16 @@ def gather_all_data(Sep_data_folder, data_folder):
 def manual_selection(data_folder, extraction_folder, data_file = None):
     if(data_file):
         data = np.load(data_file)
-        images = list(data['images'])
-        # images.pop(259)
+        # images = list(data['images'])
         points = list(data['manual_points'])
-        # points.pop(259)
         names = list(data['names'])
-        # names.pop(259)
+    
     else:
         points = []
         names = []
-        images = []
+        # images = []
     
-    count = len(images)
+    count = len(names)
     point = []
     files = os.listdir(data_folder)
 
@@ -61,19 +59,25 @@ def manual_selection(data_folder, extraction_folder, data_file = None):
                 key = cv2.waitKey(1)
                 if key == 27: # Press Esc
                     if(len(point) == 4):
-                        images.append(img)
+                        # images.append(img)
                         points.append(point)
                         names.append(files[i])
                         point = []
                         count += 1
                         print("done - " + str(count) + " - " + files[i])
                         cv2.destroyAllWindows()
+                        if(count == 2200):
+                            points = np.array(points)
+                            np.savez(extraction_folder + 'manual_selsction_data.npz',
+                                    manual_points = points,
+                                    names = names)
+                            print("Finished manual data selection..")
+                            return
                         break
                     else:
                         print("Points Detected " + str(len(point)))
                         points = np.array(points)
                         np.savez(extraction_folder + 'manual_selsction_data.npz',
-                                images = images,
                                 manual_points = points,
                                 names = names)
                         cv2.destroyAllWindows()
@@ -82,7 +86,6 @@ def manual_selection(data_folder, extraction_folder, data_file = None):
                 elif key == 32: # Press Space
                     points = np.array(points)
                     np.savez(extraction_folder + 'manual_selsction_data.npz',
-                            images = images,
                             manual_points = points,
                             names = names)
                     cv2.destroyAllWindows()
@@ -92,10 +95,34 @@ def manual_selection(data_folder, extraction_folder, data_file = None):
     points = np.array(points)
 
     np.savez(extraction_folder + 'manual_selsction_data.npz',
-            images = images,
             manual_points = points,
             names = names)
 
+############################  Remove Manual data errors  ######################
+###############################################################################
+
+def remove_manual_data_error(data_file):
+    data = np.load(data_file)
+    points = list(data['manual_points'])
+    names = list(data['names'])
+    indeces = []
+    for index in range(0, len(points)):
+        if (len(points[index]) != 4):
+            indeces.append(index)
+    count = 0
+    for index in indeces:
+        i = index - count
+        points.pop(i)
+        names.pop(i)
+        count += 1
+    
+    points = np.array(points)
+    np.savez(extraction_folder + 'manual_selsction_data_after_correction.npz',
+            manual_points = points,
+            names = names)
+
+#####################################  Main  ##################################
+###############################################################################
 
 if __name__ == "__main__":
     Sep_data_folder = "./Data/Vera Dataset/raw/"
@@ -106,6 +133,8 @@ if __name__ == "__main__":
 
     # gather_all_data(Sep_data_folder, data_folder)
 
-    manual_selection(data_folder, extraction_folder, data_file)
+    # manual_selection(data_folder, extraction_folder, data_file)
+
+    remove_manual_data_error(data_file)
 
     print("Finished")
