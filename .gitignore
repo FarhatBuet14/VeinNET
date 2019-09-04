@@ -3,6 +3,8 @@
 *.h5
 *.ini
 *.json
+*.png
+*.ods
 */Before/*
 Before/*
 */Model_Output/*
