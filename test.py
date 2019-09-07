@@ -38,7 +38,7 @@ class VeinNetTester():
     def testing(self, pathFileTest, pathModel, Output_dir, nnArchitecture, 
                 nnInChanCount, nnClassCount, nnIsTrained, 
                 trBatchSize, loss_weights, vein_loss,
-                cropped_fldr, bounding_box_folder):
+                cropped_fldr, bounding_box_folder, dataset = "Bosphorus"):
         
         cudnn.benchmark = True
 
@@ -52,7 +52,7 @@ class VeinNetTester():
         #-------------------- SETTINGS: DATASET BUILDERS
         trans_pipeline = transforms.Compose([transforms.ToTensor(),
                                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-        test_data = utils.dataset_builder(pathFileTest, 'Test')
+        test_data = utils.dataset_builder(pathFileTest, 'Test', dataset)
         test_set = utils.SeedlingDataset(test_data, pathFileTest,
                                     trans_pipeline = trans_pipeline, normalize = True)
         test_loader = DataLoader(test_set, batch_size = trBatchSize, shuffle = True)
@@ -137,6 +137,8 @@ if __name__ == "__main__":
 
     #-------------------- Parse the arguments
     parser = argparse.ArgumentParser(description='Training VeinNetTrainer...')
+    parser.add_argument("-ts", "--testSet", type=str, metavar = "",
+                        help="Test Set Name")
     parser.add_argument("--pathDirData", type=str, metavar = "",
                         help="Train/Test/Validation Data Directory")
     parser.add_argument("--Output_dir", type=str, metavar = "",
@@ -162,6 +164,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     #-------------------- Store the arguements
+    if(args.testSet):
+        testSet = args.testSet
+    else:
+        testSet = "Vera"
     if(args.nnArchitecture):
         nnArchitecture = args.nnArchitecture
     else:
@@ -169,11 +175,17 @@ if __name__ == "__main__":
     if args.pathDirData:
         pathFileTest = args.pathDirData
     else:
-        pathFileTest = "./Data/Test/"
+        if(testSet == "Vera"):
+            pathFileTest = "./Data/Vera Dataset/all_resized/"
+        else:
+            pathFileTest = "./Data/Bosphorus Dataset/Test/"
     if args.Output_dir:
         Output_dir = args.Output_dir
     else:
-        Output_dir = "./Model_Output/"
+        if(testSet == "Vera"):
+            Output_dir = "./Model_Output/Vera_test_results/"
+        else:
+            Output_dir = "./Model_Output/"
     if args.pathModel:
         test_pathModel = args.pathModel
     else:
@@ -217,4 +229,4 @@ if __name__ == "__main__":
     vein.testing(pathFileTest, test_pathModel, Output_dir, nnArchitecture, 
                 nnInChanCount, nnClassCount, nnIsTrained, 
                 trBatchSize, loss_weights, vein_loss, 
-                cropped_fldr, bounding_box_folder)
+                cropped_fldr, bounding_box_folder, testSet)

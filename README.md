@@ -23,6 +23,7 @@ This project is to detect the dorsal vein using an infrared illuminator and then
  	
 1. utils.py
 	- get_ID
+	- Train_Validation_Split
 	- SeedlingDataset
     	- get_processed
 	- dataset_builder
