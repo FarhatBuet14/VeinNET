@@ -5,6 +5,8 @@ import shutil
 
 import torch
 
+import veinloss
+
 #############################  Gather All Data  ###############################
 ###############################################################################
 
@@ -121,20 +123,102 @@ def remove_manual_data_error(data_file):
             manual_points = points,
             names = names)
 
+##############################  Draw points on images  ########################
+###############################################################################
+
+def draw_poins_on_images(data_folder, data_file, image_with_point_folder):
+    data = np.load(data_file)
+    points = list(data['manual_points'])
+    names = list(data['names'])
+    for sample in range(0, len(names)):
+        img = cv2.imread(data_folder + names[sample])
+        for point in np.array(points[sample]).reshape(2, 2):   
+            point = np.array(point).astype(int)
+            cv2.circle(img, (point[0], point[1]), 
+                    20, (255, 255, 255), -1)
+        cv2.imwrite(image_with_point_folder + names[sample], img)
+
+    print("Finished Drawing..")
+
+###############################  Calculate Vein Loss  #########################
+###############################################################################
+
+def cal_vein_loss(data_folder, data_file, aug_data_file, 
+                    vein_image_folder, loss_class, test_set):
+    if(test_set == "Vera"):
+        data = np.load(data_file)
+        points = torch.tensor(data['manual_points']).cuda()
+        names = data['names']
+    
+    elif(test_set == "Bosphorus"):
+        data = np.load(data_file)
+        X_names = data['X_train_names'].astype(str)
+        y = data['y_train']
+        data = np.load(aug_data_file)
+        X_train_aug_names = data['X_train_aug_names'].astype(str)
+        y_train_aug = data['y_train_aug'].reshape((-1, 4))
+
+        # Concatenate main data and augmented data
+        names = np.concatenate((X_names, X_train_aug_names), axis = 0)
+        points = torch.tensor(np.concatenate((y, y_train_aug), axis = 0)).cuda()
+    
+    input = []
+    ids = []
+    for name in names:
+        if(test_set == "Vera"):
+            ids.append(int(name.split("_")[0]))
+        elif(test_set == "Bosphorus"):
+            import utils
+            ids = utils.get_ID(names)
+        input.append(cv2.imread(data_folder + name))
+    
+    input = torch.tensor(np.array(input)).cuda()
+    ids = torch.tensor(np.array(ids)).cuda()
+
+    loss = loss_class(points, points, input, names, ids)
+
+    loss_logger = loss_class.loss_logger
+    loss_names = loss_class.names
+
+    return loss, loss_logger, loss_names
+
 #####################################  Main  ##################################
 ###############################################################################
 
 if __name__ == "__main__":
-    Sep_data_folder = "./Data/Vera Dataset/raw/"
-    data_folder = "./Data/Vera Dataset/all/"
-    extraction_folder = "./Data/Vera Dataset/"
-    data_file = extraction_folder + 'manual_selsction_data.npz'
+    
+    test_set = "Vera"
+    if(test_set == "Vera"):
+        Sep_data_folder = "./Data/Vera Dataset/raw/"
+        data_folder = "./Data/Vera Dataset/all/"
+        extraction_folder = "./Data/Vera Dataset/Extraction/"
+        data_file = extraction_folder + 'manual_selsction_data_after_correction.npz'
+        aug_data_file = None
+        image_with_point_folder = extraction_folder + "Data_with_points/"
+        vein_image_folder = extraction_folder + "Extracted ROI/"
+        bounding_box_folder = extraction_folder + "Extracted Bounding Box/"
+    elif(test_set == "Bosphorus"):
+        data_folder = "./Data/Train/"
+        extraction_folder = "./Data/Extraction/"
+        data_file = extraction_folder + 'Train_data_without_augmentation.npz'
+        aug_data_file = extraction_folder + 'Augmented_Train_data.npz'
+        image_with_point_folder = extraction_folder + "Data_with_points/"
+        vein_image_folder = extraction_folder + "Extracted ROI/"
+        bounding_box_folder = extraction_folder + "Extracted Bounding Box/"
+    
     # data_file = None
 
     # gather_all_data(Sep_data_folder, data_folder)
 
     # manual_selection(data_folder, extraction_folder, data_file)
 
-    remove_manual_data_error(data_file)
+    # remove_manual_data_error(data_file)
+
+    # draw_poins_on_images(data_folder, data_file, image_with_point_folder)
+    
+    loss_class = veinloss.Vein_loss_class(vein_image_folder, bounding_box_folder, 
+                                        data_folder)
+    loss , loss_logger, loss_names = cal_vein_loss(data_folder, data_file, aug_data_file, 
+                                                    vein_image_folder, loss_class, test_set)
 
     print("Finished")
