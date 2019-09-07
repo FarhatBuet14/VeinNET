@@ -172,13 +172,13 @@ class VeinNetTrainer():
         #-------------------- SETTINGS: TENSORBOARD
         tb = SummaryWriter()
         
-        images, _, _ = next(iter(train_loader))
-        images_val, _, _ = next(iter(valid_loader))
-        grid = torchvision.utils.make_grid(images)
-        grid_val = torchvision.utils.make_grid(images_val)
+        # images, _, _ = next(iter(train_loader))
+        # images_val, _, _ = next(iter(valid_loader))
+        # grid = torchvision.utils.make_grid(images)
+        # grid_val = torchvision.utils.make_grid(images_val)
 
-        tb.add_image('images', grid)
-        tb.add_image('images_val', grid_val)
+        # tb.add_image('images', grid)
+        # tb.add_image('images_val', grid_val)
         # tb.add_graph(training_model.cpu(), images.reshape((1, trBatchSize, nnInChanCount, 240, 300)))
         # tb.add_graph(training_model.cpu(), images_val.reshape((1, trBatchSize, nnInChanCount, 240, 300)))
         
@@ -200,7 +200,7 @@ class VeinNetTrainer():
         print('-' * 50 + 'Start Training' + '-' * 50)
 
         loss_epoch = []
-        loss_logger = []
+        self.loss_logger = []
 
         for epochID in range (start_epoch, trMaxEpoch):
 
@@ -233,7 +233,7 @@ class VeinNetTrainer():
             # tb.add_histogram('conv1.weight', training_model.conv1.weight, epochID + 1)
             # tb.add_histogram('conv1.weight.grad', training_model.conv1.weight.grad, epochID + 1)
             
-            loss_logger.append(loss_epoch)
+            self.loss_logger.append(loss_epoch)
 
             scheduler.step(totalLossVal.data)
             
@@ -243,7 +243,7 @@ class VeinNetTrainer():
                 path = pathModel + str(epochID + 1) + '_____' + str(lossTrain) + '_____' + str(lossVal.item()) + '_____' + str(lossTrain_v) + '_____' + str(lossVal_v.item()) + '.pth.tar'
                 torch.save({'epoch': epochID + 1, 'state_dict': training_model.state_dict(), 
                             'best_loss': lossMIN, 'optimizer' : optimizer.state_dict(), 
-                            'loss_logger' : loss_epoch }, path)
+                            'loss_logger' : self.loss_logger }, path)
                 print ('Epoch [' + str(epochID + 1) + '] [save]')
             else:
                 print ('Epoch [' + str(epochID + 1) + '] [----]')
@@ -258,9 +258,12 @@ class VeinNetTrainer():
                 print('-' * 20)
                 print('Train_loss_vein = ' + str(lossTrain_v))
                 print('Val_loss_vein   = ' + str(lossVal_v.item()))
+            
+            loss_epoch = []
         
         tb.close()
-        np.savez(Output_dir + 'loss_logger.npz', loss_logger = np.array(loss_logger))
+        np.savez(Output_dir + 'loss_logger.npz', loss_logger = np.array(self.loss_logger))
+        
         print('-' * 50 + 'Finished Training' + '-' * 50)
 
 
@@ -307,15 +310,15 @@ if __name__ == "__main__":
     if args.trMaxEpoch:
         trMaxEpoch = args.trMaxEpoch
     else:
-        trMaxEpoch = 150
+        trMaxEpoch = 250
     if args.trBatchSize:
         trBatchSize = args.trBatchSize
     else:
-        trBatchSize = 8
+        trBatchSize = 32
     if args.pathDirData:
         pathDirData = args.pathDirData
     else:
-        pathDirData = "./Data/Train/"
+        pathDirData = "./Data/All/Train/"
     if args.Output_dir:
         Output_dir = args.Output_dir
     else:
@@ -337,7 +340,7 @@ if __name__ == "__main__":
     else:
         loss_weights = [1, 1]
     if(args.gpu):
-        gpu = args.gpu
+        gpu = args.gpu 
     else:
         gpu = True
     if(args.nnIsTrained):
@@ -352,9 +355,9 @@ if __name__ == "__main__":
         checkpoint = args.checkpoint
     else:
         # checkpoint = False
-        checkpoint = Output_dir + 'Best Model/' + '113_____1.499423033439073_____3.188467502593994_____0.5486444562873585_____0.47552916407585144.pth.tar'
-
-
+        checkpoint = Output_dir + 'Best Model/' + '59_____1.7215716044108074_____3.3250184059143066_____16.050174967447916_____15.23857307434082.pth.tar'
+    
+    
     cropped_fldr = Output_dir + 'Cropped/'
     bounding_box_folder = Output_dir + 'Prediction/'
     print('-' * 100)
