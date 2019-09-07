@@ -28,7 +28,7 @@ class Vein_loss_class(torch.nn.Module):
                     save_bb = True):
         crop = []
         for sample in range(0, self.total_input): 
-            
+
              # Error removing for augmented data---------------------
             file, point, point_pred = str(self.img_name[sample]), self.output[sample], self.target[sample]
             if(file.find('_flrot_') != -1):
@@ -81,27 +81,30 @@ class Vein_loss_class(torch.nn.Module):
             keypoints_test_rotated = keypoints_test_rotated.reshape((2, 2))
             
             # Rotated Points
-            top_left_ = keypoints_pred_rotated[0]    
-            top_left_ = tuple(top_left_.reshape(1, -1)[0])
-            
-            center = np.zeros((2, )).astype(int)
-            center[0] = top_left_[0] + int(self.width/2)  - self.th
-            center[1] = top_left_[1] + int(self.height/2)
-            center = tuple(center.reshape(1, -1)[0])
-            
+            top_left = keypoints_pred_rotated[0]
+            top_left[0] = top_left[0] - self.th
+            top_right = keypoints_pred_rotated[1]
+            top_right[0] = top_right[0] + self.th
+            self.width = int(abs(top_right - top_left)[0])
+            self.height = int(self.width * (90/70))
+            centre = tuple([top_left[0] + int(self.width/2), top_left[1] + int(self.height/2)])
+
             # Crop the Vein Image
             cropped = cv2.getRectSubPix(image_rotated, (self.width, self.height), 
-                                    center)
+                                    centre)
             crop.append(cropped)
             if(save_vein_pic):
                 cv2.imwrite(self.cropped_fldr + self.img_name[sample], cropped)
             
             # Draw Predicted Troughs
-            points = keypoints_pred_rotated.reshape((2, 2))    
+            points = keypoints_pred_rotated.reshape((2, 2))  
+            color = [(255, 255, 255), (0, 0, 0)] # Left - White, # Right - Black
+            count = 0  
             for point in points:   
                 point = np.array(point).astype(int)
                 cv2.circle(image_rotated, (point[0], point[1]), 
-                        5, (0, 0, 0), -1)
+                        5, color[count], -1)
+                count += 1
             
             # Draw Actual Troughs
             points = keypoints_test_rotated.reshape((2, 2))    
@@ -109,20 +112,11 @@ class Vein_loss_class(torch.nn.Module):
                 point = np.array(point).astype(int)
                 cv2.circle(image_rotated, (point[0], point[1]), 
                         5, (255, 0, 0), -1)
-            
-            # Points for Bounding Boxes
-            tl = np.zeros((2, )).astype(int)
-            tl[0] = center[0] - int(self.width/2)  
-            tl[1] = center[1] - int(self.height/2)
-            tl = tuple(tl.reshape(1, -1)[0])
-            
-            br = np.zeros((2, )).astype(int)
-            br[0] = center[0] + int(self.width/2)  
-            br[1] = center[1] + int(self.height/2)
-            br = tuple(br.reshape(1, -1)[0])
-            
+
+            bottom_right = [int(top_left[0] + self.width) , int(top_left[1] + self.height)]
+
             # Draw Bounding Boxes and Save the image
-            image_rotated = cv2.rectangle(image_rotated, tl, br , (0,0,0), 2)
+            image_rotated = cv2.rectangle(image_rotated, tuple(top_left), tuple(bottom_right) , (0,0,0), 2)
             if(save_bb):
                 cv2.imwrite(self.bounding_box_folder + self.img_name[sample], 
                             image_rotated)
