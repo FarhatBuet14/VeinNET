@@ -14,13 +14,16 @@ from torch.utils.data import Dataset
 from torch.autograd import Variable
 
 ######################### Get the IDs  #########################
-##################################################################
+################################################################
 
-def get_ID(img_names):
+def get_ID(img_names, dataset = None):
     IDs = []
     for name in img_names:
-        temp = name.split("_")[0].split()[0]
-        IDs.append(np.array(re.findall(r'\d+', temp)).astype(int)[0])
+        if(dataset == "Vera"):
+            IDs.append(int(name.split("_")[0]))
+        elif(dataset == "Bosphorus"):
+            temp = name.split("_")[0].split()[0]
+            IDs.append(np.array(re.findall(r'\d+', temp)).astype(int)[0])
         
     return IDs
 
@@ -91,7 +94,8 @@ class SeedlingDataset(Dataset):
         pr_img.append(gray)
         pr_img.append(accu)
         pr_img.append(accu2)
-        pr_img = np.array(pr_img).reshape((240, 300, len(pr_img)))
+        pr_img = np.array(pr_img)
+        pr_img = pr_img.reshape((pr_img.shape[1], pr_img.shape[2], pr_img.shape[0]))
 
         return pr_img
     
@@ -115,6 +119,7 @@ class SeedlingDataset(Dataset):
 def dataset_builder(pathDirData, mode = 'Train'):
     
     if(mode == 'Train'):
+        # ----------------------------------------------------------- Bosphorus
         # Import Main Data
         data = np.load(pathDirData + 'Train_data_without_augmentation.npz') 
         X_names = data['X_train_names'].astype(str)
@@ -129,18 +134,49 @@ def dataset_builder(pathDirData, mode = 'Train'):
         X_names = np.concatenate((X_names, X_train_aug_names), axis = 0)
         y = np.concatenate((y, y_train_aug), axis = 0)
 
-        ID = get_ID(X_names)
+        ID = get_ID(X_names, "Bosphorus")
         split_factor = float(2/3)
-        
         X_names, X_val_names, y, y_val = Train_Validation_Split(X_names, y, ID, split_factor)
+        ID = get_ID(X_names, "Bosphorus")
+        ID_val = get_ID(X_val_names, "Bosphorus")
+
+        # ----------------------------------------------------------- Vera
+        data = np.load(pathDirData + 'Train.npz') 
+        X_names_v = data['names'].astype(str)
+        y_v = np.array(data['manual_points']).reshape((-1, 4))
+        
+        ID_v = get_ID(X_names_v, "Vera")
+        split_factor_v = float(2/3)
+        X_names_v, X_val_names_v, y_v, y_val_v = Train_Validation_Split(X_names_v, y_v, ID_v, split_factor_v)
+        ID_v = get_ID(X_names_v, "Bosphorus")
+        ID_val_v = get_ID(X_val_names_v, "Bosphorus")
+
+        # Concatenate Bosphorus and Vera Data
+        X_names = np.concatenate((X_names, X_names_v), axis = 0)
+        y = np.concatenate((y, y_v), axis = 0)
+        ID = np.concatenate((ID, ID_v), axis = 0)
+        
+        X_val_names = np.concatenate((X_val_names, X_val_names_v), axis = 0)
+        y_val = np.concatenate((y_val, y_val_v), axis = 0)
+        ID_val = np.concatenate((ID_val, ID_val_v), axis = 0)
 
     if(mode == 'Test'):
-        # Import Main Data
+        # ------------------------------------------------------------- Bosphorus
         data = np.load(pathDirData + 'Test_data.npz') 
         X_names = data['X_test_names'].astype(str)
         y = data['y_test']
+        ID = get_ID(X_names, "Bosphorus")
 
-    ID = get_ID(X_names)
+        # ------------------------------------------------------------- Vera
+        data = np.load(pathDirData + 'Test.npz') 
+        X_names_v = data['names'].astype(str)
+        y_v = np.array(data['manual_points']).reshape((-1, 4))
+        ID_v = get_ID(X_names_v, "Vera")
+
+        # Concatenate Bosphorus and Vera Data
+        X_names = np.concatenate((X_names, X_names_v), axis = 0)
+        y = np.concatenate((y, y_v), axis = 0)
+        ID = np.concatenate((ID, ID_v), axis = 0)
     
     data = []
     for index in range(0, len(X_names)):
@@ -152,10 +188,9 @@ def dataset_builder(pathDirData, mode = 'Train'):
     
 
     if(mode == 'Train'):
-        ID = get_ID(X_val_names)
         data = []
         for index in range(0, len(X_val_names)):
-            data.append([X_val_names[index], ID[index], y_val[index, 0], y_val[index, 1],
+            data.append([X_val_names[index], ID_val[index], y_val[index, 0], y_val[index, 1],
                             y_val[index, 2], y_val[index, 3]])
         
         val_data = pd.DataFrame(data, columns=['file_name', 'id', 'point_1x', 
