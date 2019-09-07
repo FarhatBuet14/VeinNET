@@ -5,6 +5,7 @@
 *.json
 *.png
 *.ods
+*.tar
 */Before/*
 Before/*
 */Model_Output/*
