@@ -38,7 +38,7 @@ class VeinNetTester():
     def testing(self, pathFileTest, pathModel, Output_dir, nnArchitecture, 
                 nnInChanCount, nnClassCount, nnIsTrained, 
                 trBatchSize, loss_weights, vein_loss,
-                cropped_fldr, bounding_box_folder, dataset = "Bosphorus"):
+                cropped_fldr, bounding_box_folder):
         
         cudnn.benchmark = True
 
@@ -52,7 +52,7 @@ class VeinNetTester():
         #-------------------- SETTINGS: DATASET BUILDERS
         trans_pipeline = transforms.Compose([transforms.ToTensor(),
                                             transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-        test_data = utils.dataset_builder(pathFileTest, 'Test', dataset)
+        test_data = utils.dataset_builder(pathFileTest, 'Test')
         test_set = utils.SeedlingDataset(test_data, pathFileTest,
                                     trans_pipeline = trans_pipeline, normalize = True)
         test_loader = DataLoader(test_set, batch_size = trBatchSize, shuffle = True)
@@ -106,15 +106,9 @@ class VeinNetTester():
             runningLoss = runningLoss/len(test_loader)
             runningLoss_v = runningLoss_v/len(test_loader)
             runningTotalLoss = runningTotalLoss/len(test_loader)
-        
-        # Accuracy Calculation
-        loss_logger = np.array(loss_logger)
-        loss_logger = (loss_logger < 0.02)
-        accuracy = (np.sum(loss_logger) / 600 ) * 100
 
         # Print the losses
         print('Test_loss      = ' + str(np.array(runningTotalLoss.cpu())))
-        print('Test_accurcy   = ' + str(accuracy))
         print('-' * 20)
         if(vein_loss):
             print('Test_loss_point   = ' + str(runningLoss.item()))
@@ -164,10 +158,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     #-------------------- Store the arguements
-    if(args.testSet):
-        testSet = args.testSet
-    else:
-        testSet = "Vera"
     if(args.nnArchitecture):
         nnArchitecture = args.nnArchitecture
     else:
@@ -175,21 +165,15 @@ if __name__ == "__main__":
     if args.pathDirData:
         pathFileTest = args.pathDirData
     else:
-        if(testSet == "Vera"):
-            pathFileTest = "./Data/Vera Dataset/all_resized/"
-        else:
-            pathFileTest = "./Data/Bosphorus Dataset/Test/"
+        pathFileTest = "./Data/All/Test/"
     if args.Output_dir:
         Output_dir = args.Output_dir
     else:
-        if(testSet == "Vera"):
-            Output_dir = "./Model_Output/Vera_test_results/"
-        else:
-            Output_dir = "./Model_Output/"
+        Output_dir = "./Model_Output/"
     if args.pathModel:
         test_pathModel = args.pathModel
     else:
-        test_pathModel = "113_____1.499423033439073_____3.188467502593994_____0.5486444562873585_____0.47552916407585144.pth.tar"
+        test_pathModel = "59_____1.7215716044108074_____3.3250184059143066_____16.050174967447916_____15.23857307434082.pth.tar"
     test_pathModel = Output_dir + test_pathModel
     if args.nnInChanCount:
         nnInChanCount = args.nnInChanCount
@@ -202,7 +186,7 @@ if __name__ == "__main__":
     if args.trBatchSize:
         trBatchSize = args.trBatchSize
     else:
-        trBatchSize = 8
+        trBatchSize = 32
     if args.loss_weights:
         loss_weights = args.loss_weights
     else:
@@ -229,4 +213,4 @@ if __name__ == "__main__":
     vein.testing(pathFileTest, test_pathModel, Output_dir, nnArchitecture, 
                 nnInChanCount, nnClassCount, nnIsTrained, 
                 trBatchSize, loss_weights, vein_loss, 
-                cropped_fldr, bounding_box_folder, testSet)
+                cropped_fldr, bounding_box_folder)
