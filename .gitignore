@@ -8,6 +8,8 @@
 *.tar
 */Before/*
 Before/*
+*/Test Images/*
+Test Images/*
 */.vscode/*
 .vscode/*
 */pandas/*
