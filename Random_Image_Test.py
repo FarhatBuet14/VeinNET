@@ -28,13 +28,8 @@ def resizing_inputs(test_folder):
             cv2.imwrite(resized_folder + file, image)
     print("Finished Resizing..")
 
-if __name__ == "__main__":
+def random_test(test_folder, pathModel):
     
-    test_folder = "./Test Images/"
-    file = "59_____1.7215716044108074_____3.3250184059143066_____16.050174967447916_____15.23857307434082.pth.tar"
-    pathModel = "./Model_Output/Best Model/" + file
-    
-    resizing_inputs(test_folder)
     images = []
     images_arr = []
     names = []
@@ -68,6 +63,15 @@ if __name__ == "__main__":
                     5, color[count], -1)
             count += 1
         cv2.imwrite(test_folder + "Results/" + names[sample], img)
+
+if __name__ == "__main__":
+    
+    test_folder = "./Test Images/"
+    file = "59_____1.7215716044108074_____3.3250184059143066_____16.050174967447916_____15.23857307434082.pth.tar"
+    pathModel = "./Model_Output/Best Model/" + file
+    
+    resizing_inputs(test_folder)
+    random_test(test_folder, pathModel)
     
     
     print("Finished")

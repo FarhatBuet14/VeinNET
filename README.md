@@ -1,7 +1,7 @@
 # Human-Identification-through-Matching-Dorsal-Vein
 This project is to detect the dorsal vein using an infrared illuminator and then enhancement of vein images is done by using different techniques for identifying the person. The proposed work is related to the implementation of Infrared vein detection and matching system for person identification.
 
-## [Video Link](https://youtu.be/0xPcVjBJbuc)
+## [Video Link (Undergraduate Project)](https://youtu.be/0xPcVjBJbuc)
 
 
 ## Description - 
@@ -58,3 +58,7 @@ This project is to detect the dorsal vein using an infrared illuminator and then
 6. test.py
 	- VeinVetTester
 		- testing
+
+7. Random_Image_Test.py
+	- resizing_inputs
+	- random_test
