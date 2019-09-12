@@ -31,7 +31,7 @@ class Vein_loss_class(torch.nn.Module):
 
              # Error removing for augmented data---------------------
             file, point, point_pred = str(self.img_name[sample]), self.output[sample], self.target[sample]
-            if(file.find('_flrot_') != -1):
+            if((file.find('_flrot_') != -1) | (file.find('_flrotVera_') != -1)):
                 point1 = np.array(point[0:2])
                 point2 = np.array(point[2:4])
                 point_changed = []
@@ -86,7 +86,7 @@ class Vein_loss_class(torch.nn.Module):
             top_right = keypoints_pred_rotated[1]
             top_right[0] = top_right[0] + self.th
             self.width = int(abs(top_right - top_left)[0])
-            self.height = int(self.width * (90/70))
+            self.height = int(self.width * (90/80))
             centre = tuple([top_left[0] + int(self.width/2), top_left[1] + int(self.height/2)])
 
             # Crop the Vein Image
