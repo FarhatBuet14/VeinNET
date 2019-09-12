@@ -134,6 +134,7 @@ def dataset_builder(pathDirData, mode = 'Train'):
         X_names = np.concatenate((X_names, X_train_aug_names), axis = 0)
         y = np.concatenate((y, y_train_aug), axis = 0)
 
+        # Train-val splitting
         ID = get_ID(X_names, "Bosphorus")
         split_factor = float(2/3)
         X_names, X_val_names, y, y_val = Train_Validation_Split(X_names, y, ID, split_factor)
@@ -141,10 +142,21 @@ def dataset_builder(pathDirData, mode = 'Train'):
         ID_val = get_ID(X_val_names, "Bosphorus")
 
         # ----------------------------------------------------------- Vera
+        # Import Main Data
         data = np.load(pathDirData + 'Train.npz') 
         X_names_v = data['names'].astype(str)
         y_v = np.array(data['manual_points']).reshape((-1, 4))
+
+        # Import Augmented Data
+        data = np.load(pathDirData + "Augmented_Train_data_vera.npz") 
+        X_train_aug_names = data['X_train_aug_names'].astype(str)
+        y_train_aug = data['y_train_aug'].reshape((-1, 4))
+
+        # Concatenate main data and augmented data
+        X_names_v = np.concatenate((X_names_v, X_train_aug_names), axis = 0)
+        y_v = np.concatenate((y_v, y_train_aug), axis = 0)
         
+        # Train-val splitting
         ID_v = get_ID(X_names_v, "Vera")
         split_factor_v = float(2/3)
         X_names_v, X_val_names_v, y_v, y_val_v = Train_Validation_Split(X_names_v, y_v, ID_v, split_factor_v)
