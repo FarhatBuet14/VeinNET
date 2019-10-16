@@ -18,14 +18,17 @@ from torch.autograd import Variable
 
 def get_ID(img_names, dataset = None):
     IDs = []
+    org = []
     for name in img_names:
         if(dataset == "Vera"):
+            org.append(1)
             IDs.append(int(name.split("_")[0]))
         elif(dataset == "Bosphorus"):
+            org.append(2)
             temp = name.split("_")[0].split()[0]
             IDs.append(np.array(re.findall(r'\d+', temp)).astype(int)[0])
         
-    return IDs
+    return IDs, org
 
 ##################### Train/Validation Split  ####################
 ##################################################################
@@ -135,11 +138,11 @@ def dataset_builder(pathDirData, mode = 'Train'):
         y = np.concatenate((y, y_train_aug), axis = 0)
 
         # Train-val splitting
-        ID = get_ID(X_names, "Bosphorus")
+        ID, org = get_ID(X_names, "Bosphorus")
         split_factor = float(2/3)
         X_names, X_val_names, y, y_val = Train_Validation_Split(X_names, y, ID, split_factor)
-        ID = get_ID(X_names, "Bosphorus")
-        ID_val = get_ID(X_val_names, "Bosphorus")
+        ID, org = get_ID(X_names, "Bosphorus")
+        ID_val, org_val = get_ID(X_val_names, "Bosphorus")
 
         # ----------------------------------------------------------- Vera
         # Import Main Data
@@ -157,55 +160,58 @@ def dataset_builder(pathDirData, mode = 'Train'):
         y_v = np.concatenate((y_v, y_train_aug), axis = 0)
         
         # Train-val splitting
-        ID_v = get_ID(X_names_v, "Vera")
+        ID_v, org_v = get_ID(X_names_v, "Vera")
         split_factor_v = float(2/3)
         X_names_v, X_val_names_v, y_v, y_val_v = Train_Validation_Split(X_names_v, y_v, ID_v, split_factor_v)
-        ID_v = get_ID(X_names_v, "Bosphorus")
-        ID_val_v = get_ID(X_val_names_v, "Bosphorus")
+        ID_v, org_v = get_ID(X_names_v, "Vera")
+        ID_val_v, org_val_v = get_ID(X_val_names_v, "Vera")
 
-        # Concatenate Bosphorus and Vera Data
+        # ----------------------------------- Concatenate Bosphorus and Vera Data
         X_names = np.concatenate((X_names, X_names_v), axis = 0)
         y = np.concatenate((y, y_v), axis = 0)
         ID = np.concatenate((ID, ID_v), axis = 0)
+        org = np.concatenate((org, org_v), axis = 0)
         
         X_val_names = np.concatenate((X_val_names, X_val_names_v), axis = 0)
         y_val = np.concatenate((y_val, y_val_v), axis = 0)
         ID_val = np.concatenate((ID_val, ID_val_v), axis = 0)
+        org_val = np.concatenate((org_val, org_val_v), axis = 0)
 
     if(mode == 'Test'):
         # ------------------------------------------------------------- Bosphorus
         data = np.load(pathDirData + 'Test_data.npz') 
         X_names = data['X_test_names'].astype(str)
         y = data['y_test']
-        ID = get_ID(X_names, "Bosphorus")
+        ID, org = get_ID(X_names, "Bosphorus")
 
         # ------------------------------------------------------------- Vera
         data = np.load(pathDirData + 'Test.npz') 
         X_names_v = data['names'].astype(str)
         y_v = np.array(data['manual_points']).reshape((-1, 4))
-        ID_v = get_ID(X_names_v, "Vera")
+        ID_v, org_v = get_ID(X_names_v, "Vera")
 
         # Concatenate Bosphorus and Vera Data
         X_names = np.concatenate((X_names, X_names_v), axis = 0)
         y = np.concatenate((y, y_v), axis = 0)
         ID = np.concatenate((ID, ID_v), axis = 0)
+        org = np.concatenate((org, org_v), axis = 0)
     
     data = []
     for index in range(0, len(X_names)):
-        data.append([X_names[index], ID[index], y[index, 0], y[index, 1],
+        data.append([X_names[index], ID[index], org[index], y[index, 0], y[index, 1],
                     y[index, 2], y[index, 3]])
 
-    data_df = pd.DataFrame(data, columns=['file_name', 'id', 'point_1x', 
+    data_df = pd.DataFrame(data, columns=['file_name', 'id', 'origin', 'point_1x', 
                                         'point_1y', 'point_2x', 'point_2y']) 
     
 
     if(mode == 'Train'):
         data = []
         for index in range(0, len(X_val_names)):
-            data.append([X_val_names[index], ID_val[index], y_val[index, 0], y_val[index, 1],
-                            y_val[index, 2], y_val[index, 3]])
+            data.append([X_val_names[index], ID_val[index], org_val[index], y_val[index, 0], 
+                            y_val[index, 1], y_val[index, 2], y_val[index, 3]])
         
-        val_data = pd.DataFrame(data, columns=['file_name', 'id', 'point_1x', 
+        val_data = pd.DataFrame(data, columns=['file_name', 'id', 'origin', 'point_1x', 
                                                 'point_1y', 'point_2x', 'point_2y']) 
         return data_df, val_data
     
