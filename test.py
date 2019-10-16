@@ -76,8 +76,8 @@ class VeinNetTester():
             loader = tqdm(test_loader, total=len(test_loader))
             for batchID, (input, target, img_name) in enumerate (loader):
                 batch_loss = []
-                id = target[:, 0]
-                target = target[:, 1:]
+                id = target[:, 0:2]
+                target = target[:, 2:]
                 if(self.gpu):
                     input = input.type(torch.FloatTensor).to(device = torch.device('cuda'))
                     target = target.float().to(device = torch.device('cuda'))

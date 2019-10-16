@@ -58,8 +58,8 @@ class VeinNetTrainer():
         loader = tqdm(dataLoader, total=len(dataLoader))
         for batchID, (input, target, img_name) in enumerate (loader):
             
-            id = target[:, 0]
-            target = target[:, 1:]
+            id = target[:, 0:2]
+            target = target[:, 2:]
             input, target = Variable(input), Variable(target)
             if(self.gpu):
                 input = input.type(torch.FloatTensor).to(device = torch.device('cuda'))
@@ -103,8 +103,8 @@ class VeinNetTrainer():
         with torch.no_grad():
             for batchID, (input, target, img_name) in enumerate (dataLoader):
                 
-                id = target[:, 0]
-                target = target[:, 1:]
+                id = target[:, 0:2]
+                target = target[:, 2:]
                 if(self.gpu):
                     input = input.type(torch.FloatTensor).to(device = torch.device('cuda'))
                     target = target.float().to(device = torch.device('cuda'))
@@ -355,7 +355,7 @@ if __name__ == "__main__":
         checkpoint = args.checkpoint
     else:
         # checkpoint = False
-        checkpoint = Output_dir + 'Best Model/' + '59_____1.7215716044108074_____3.3250184059143066_____16.050174967447916_____15.23857307434082.pth.tar'
+        checkpoint = Output_dir + 'Best Model/' + '39_____3.094789050874256_____16.29541015625_____21.556380208333334_____21.528364181518555.pth.tar'
     
     
     cropped_fldr = Output_dir + 'Cropped/'
