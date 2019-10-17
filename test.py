@@ -173,7 +173,7 @@ if __name__ == "__main__":
     if args.pathModel:
         test_pathModel = args.pathModel
     else:
-        test_pathModel = "59_____1.7215716044108074_____3.3250184059143066_____16.050174967447916_____15.23857307434082.pth.tar"
+        test_pathModel = "176_____5.460211472284226_____5.322452068328857_____19.288497488839287_____23.147016525268555.pth.tar"
     test_pathModel = Output_dir + test_pathModel
     if args.nnInChanCount:
         nnInChanCount = args.nnInChanCount

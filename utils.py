@@ -178,23 +178,23 @@ def dataset_builder(pathDirData, mode = 'Train'):
         org_val = np.concatenate((org_val, org_val_v), axis = 0)
 
     if(mode == 'Test'):
-        # ------------------------------------------------------------- Bosphorus
-        data = np.load(pathDirData + 'Test_data.npz') 
-        X_names = data['X_test_names'].astype(str)
-        y = data['y_test']
-        ID, org = get_ID(X_names, "Bosphorus")
+        # # ------------------------------------------------------------- Bosphorus
+        # data = np.load(pathDirData + 'Test_data.npz') 
+        # X_names = data['X_test_names'].astype(str)
+        # y = data['y_test']
+        # ID, org = get_ID(X_names, "Bosphorus")
 
         # ------------------------------------------------------------- Vera
         data = np.load(pathDirData + 'Test.npz') 
-        X_names_v = data['names'].astype(str)
-        y_v = np.array(data['manual_points']).reshape((-1, 4))
-        ID_v, org_v = get_ID(X_names_v, "Vera")
+        X_names = data['names'].astype(str)
+        y = np.array(data['manual_points']).reshape((-1, 4))
+        ID, org = get_ID(X_names, "Vera")
 
-        # Concatenate Bosphorus and Vera Data
-        X_names = np.concatenate((X_names, X_names_v), axis = 0)
-        y = np.concatenate((y, y_v), axis = 0)
-        ID = np.concatenate((ID, ID_v), axis = 0)
-        org = np.concatenate((org, org_v), axis = 0)
+        # # Concatenate Bosphorus and Vera Data
+        # X_names = np.concatenate((X_names, X_names_v), axis = 0)
+        # y = np.concatenate((y, y_v), axis = 0)
+        # ID = np.concatenate((ID, ID_v), axis = 0)
+        # org = np.concatenate((org, org_v), axis = 0)
     
     data = []
     for index in range(0, len(X_names)):
