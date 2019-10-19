@@ -168,7 +168,7 @@ if __name__ == "__main__":
     if args.pathDirData:
         pathFileTest = args.pathDirData
     else:
-        pathFileTest = "./Data/All/Test/"
+        pathFileTest = "./Data/Test/"
     if args.Output_dir:
         Output_dir = args.Output_dir
     else:
