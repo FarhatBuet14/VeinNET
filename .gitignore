@@ -1,4 +1,9 @@
 *.bmp
+*.jpg
+*.csv
+*.mat
+*.zip
+*.pdf
 *.npz
 *.h5
 *.ini
@@ -18,3 +23,5 @@ pandas/*
 __pycache__/*
 */runs/*
 runs/*
+*/Train with Domain Adaptation/*
+Train with Domain Adaptation/*
