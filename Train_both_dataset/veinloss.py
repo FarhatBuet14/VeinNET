@@ -13,21 +13,18 @@ from torch.autograd import Variable
 ####################################################################
 
 class Vein_loss_class(torch.nn.Module):
-    def __init__(self, cropped_fldr, bounding_box_folder, data_folder):
+    def __init__(self, opt):
         super(Vein_loss_class, self).__init__()
-        self.bounding_box_folder = bounding_box_folder
-        self.cropped_fldr = cropped_fldr
-        self.data_folder = data_folder
+        self.opt = opt
         self.height = 90
         self.width = 70
         self.th = 10
         self.thresh_h = 200
         self.thresh_l = 70
 
-    def get_vein_img(self, save_vein_pic = True,
-                    save_bb = True):
+    def get_vein_img(self, save_vein_pic = True, save_bb = True):
         crop = []
-        for sample in range(0, self.total_input): 
+        for sample in range(0, self.totalInput):
 
              # Error removing for augmented data---------------------
             file, point, point_pred = str(self.img_name[sample]), self.output[sample], self.target[sample]
@@ -52,12 +49,12 @@ class Vein_loss_class(torch.nn.Module):
             
             # Find the angle to rotate the image
             angle  = (180/np.pi) * (np.arctan((top_left[1] - top_right[1])/
-                                    (top_left[0] - top_right[0])))
+                                    (top_left[0] - top_right[0] + 1e-08)))
             
             # Rotate the image to cut rectangle from the images
             points_pred = (self.output[sample]).reshape((1, 2, 2))
             points_test = (self.target[sample]).reshape((1, 2, 2))
-            img = cv2.imread(self.data_folder + self.img_name[sample])
+            img = cv2.imread(self.opt.pathDirData + self.img_name[sample])
             # image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
             image = []
             image.append(img)
@@ -86,7 +83,10 @@ class Vein_loss_class(torch.nn.Module):
             top_right = keypoints_pred_rotated[1]
             top_right[0] = top_right[0] + self.th
             self.width = int(abs(top_right - top_left)[0])
-            self.height = int(self.width * (90/80))
+            if(self.org[sample] == 0): # Vera
+                self.height = int(self.width * (82/80))
+            elif(self.org[sample] == 1): # Bosphorous
+                self.height = int(self.width * (90/80))
             centre = tuple([top_left[0] + int(self.width/2), top_left[1] + int(self.height/2)])
 
             # Crop the Vein Image
@@ -94,7 +94,7 @@ class Vein_loss_class(torch.nn.Module):
                                     centre)
             crop.append(cropped)
             if(save_vein_pic):
-                cv2.imwrite(self.cropped_fldr + self.img_name[sample], cropped)
+                cv2.imwrite(self.opt.cropped_fldr + self.img_name[sample], cropped)
             
             # Draw Predicted Troughs
             points = keypoints_pred_rotated.reshape((2, 2))  
@@ -118,28 +118,32 @@ class Vein_loss_class(torch.nn.Module):
             # Draw Bounding Boxes and Save the image
             image_rotated = cv2.rectangle(image_rotated, tuple(top_left), tuple(bottom_right) , (0,0,0), 2)
             if(save_bb):
-                cv2.imwrite(self.bounding_box_folder + self.img_name[sample], 
+                cv2.imwrite(self.opt.bounding_box_folder + self.img_name[sample], 
                             image_rotated)
-        crop = np.array(crop)
+        # crop = np.array(crop)
         return crop
     
-    def forward(self,target, output, input, img_name, ids):
+    def forward(self,target, output, input, img_name, ids, org):
         
         self.target = target.cpu().numpy()
         self.output = output.cpu().data.numpy()
         self.input = input.cpu().numpy()
         self.id = ids.cpu().numpy()
         self.id = np.array(self.id, dtype = 'int32')
+        self.org = org.cpu().numpy()
         self.img_name = img_name
-        self.total_input = len(self.id)
+        self.totalInput = len(self.id)
 
         vein_image = self.get_vein_img()
         vein_loss = 0
         # Calculate loss from extracted Vein Image
         loss_logger = []
         names = []
-        for sample in range(0, self.total_input):
+        for sample in range(0, self.totalInput):
             image = cv2.cvtColor(vein_image[sample], cv2.COLOR_RGB2GRAY)
+            if(org[sample] == 0):      # Vera Vein loss calculation
+                self.thresh_l = 38
+                self.thresh_h - 250
             accu = ((image <= self.thresh_h)  & (image >= self.thresh_l))
             true = np.count_nonzero(accu)
             false = (accu.shape[0] * accu.shape[1]) - true
@@ -151,7 +155,7 @@ class Vein_loss_class(torch.nn.Module):
         self.loss_logger = loss_logger
         self.names = names
 
-        vein_loss = vein_loss / self.total_input
+        vein_loss = vein_loss / self.totalInput
         
         return vein_loss * 100
 
