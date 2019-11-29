@@ -23,5 +23,3 @@ pandas/*
 __pycache__/*
 */runs/*
 runs/*
-*/Train with Domain Adaptation/*
-Train with Domain Adaptation/*
