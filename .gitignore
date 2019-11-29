@@ -11,6 +11,7 @@
 *.png
 *.ods
 *.tar
+*.db
 */Before/*
 Before/*
 */Test Images/*
