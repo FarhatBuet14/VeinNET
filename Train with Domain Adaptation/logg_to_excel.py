@@ -18,12 +18,15 @@ workbook.close()
 
 
 
+import cv2
 
+img = cv2.imread("Untitled.png")
 
+dim = (300, 80)
+# resize image
+resized = cv2.resize(img, dim, interpolation = cv2.INTER_AREA)
 
-
-
-
+cv2.imwrite("resized.jpg", resized)
 
 
 

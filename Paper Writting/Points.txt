@@ -1,0 +1,22 @@
+-------- DANN
+
+data at training and test time come from similar but different distributions
+
+for effective domain transfer to be achieved, predictions must be made based on features that cannot discriminate between the training source) and test (target) domains
+
+As the training progresses, the approach promotes the emergence of features that are (i) discriminative for the main learning task on the source domain and (ii) indiscriminate with respect to the shift between the domains.
+
+any feed-forward model by augmenting it with few standard layers and a new gradient reversal layer
+
+The resulting augmented architecture can be trained using standard backpropagation and stochastic gradient descent, and can thus be implemented with little effort using any of the deep learning packages
+
+DANN will effectively attempt to learn a hidden layer that maps an example (either source or target) into a representation allowing the output layer to accurately classify source samples, but crippling the ability of the domain regressor to detect whether each example belongs to the source or target domains.
+
+The proposed architecture includes a deep feature extractor (green) and a deep label predictor (blue), which together form a standard feed-forward architecture. Unsupervised domain adaptation is achieved by adding a domain classifier (red) connected to the feature extractor via a gradient reversal layer that multiplies the gradient by a certain negative constant during the backpropagation-based training. Otherwise, the training proceeds standardly and minimizes the label prediction loss (for source examples) and the domain classification loss (for all samples). Gradient reversal ensures that the feature distributions over the two domains are made similar (as indistinguishable as possible for the domain classifier), thus resulting in the domain-invariant features
+
+The gradient reversal layer has no parameters associated with it. During the forward propagation, the GRL acts as an identity transformation. During the backpropagation however, the GRL takes the gradient from the subsequent level and changes its sign, i.e., multiplies it by −1, before passing it to the preceding layer. Implementing such a layer using existing object-oriented packages for deep learning is simple, requiring only to define procedures for the forward propagation (identity transformation), and backpropagation (multiplying by −1). The layer requires no parameter update.
+
+The GRL as defined above is inserted between the feature extractor Gf and the domain classifier Gd, resulting in the architecture depicted in Figure 1. As the backpropagation process passes through the GRL, the partial derivatives of the loss that is downstream the GRL (i.e., Ld) w.r.t. the layer parameters that are upstream the GRL (i.e.) get multiplied by −1, i.e., Lfd is effectively replaced with Lfd . Therefore, running SGD in the resulting model implements the updates of Equations (13-15) and converges to a saddle point of Equation (10).
+
+The theoretical foundation of the DANN algorithm is the domain adaptation theory of BenDavid et al. (2006, 2010). We claimed that DANN finds a representation in which the source and the target example are hardly distinguishable
+
